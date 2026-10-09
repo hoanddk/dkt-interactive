@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi" class="theme-kinh-thien">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vietnamese Font QA — PASS C Release Lock</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.qa{max-width:1040px;margin:auto;padding:48px 24px 96px}
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sample,.diag{padding:24px;margin:16px 0;border:1px solid var(--color-line);background:var(--surface-card);border-radius:var(--radius-md)}
+.serif{font-family:var(--font-display)}.sans{font-family:var(--font-body)}
+.qa-regular{font-weight:400}.qa-medium{font-weight:600}.qa-bold{font-weight:700}
+.qa-big{font-size:42px;line-height:1.24}
+.qa-news{font-size:24px;line-height:1.5}
+.pass{color:#24524d;font-weight:700}.fail{color:#a12b2b;font-weight:700}.pending{color:#775c21;font-weight:700}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--color-line);text-align:left;vertical-align:top}
+.fallback-mode .serif,.fallback-mode h1,.fallback-mode h2,.fallback-mode h3{font-family:Georgia,"Times New Roman",serif!important}
+.fallback-mode .sans,.fallback-mode body,.fallback-mode button{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+@media(max-width:640px){.qa-grid{grid-template-columns:1fr}.qa-big{font-size:32px}.qa-news{font-size:20px}}
+</style>
+</head>
+<body>
+<main class="qa" id="qaRoot">
+<p class="eyebrow">FONT ASSET DROP · VIETNAMESE FONT QA</p>
+<h1>Kiểm tra font tiếng Việt — PASS C</h1>
+<p class="dek">Trang này chỉ dùng sau khi hai WOFF2 đã được đặt đúng trong <code>/fonts/</code> và site được serve qua HTTP/HTTPS.</p>
+
+<section class="diag" aria-labelledby="runtimeTitle">
+<h2 id="runtimeTitle">Runtime diagnostics</h2>
+<p><button id="runDiag">Chạy kiểm tra font</button> <button id="toggleFallback">Mô phỏng fallback</button></p>
+<table>
+<tr><th>Source Serif 4</th><td id="serifStatus" class="pending">CHƯA KIỂM TRA</td></tr>
+<tr><th>Source Sans 3</th><td id="sansStatus" class="pending">CHƯA KIỂM TRA</td></tr>
+<tr><th>Local font files</th><td id="fileStatus" class="pending">CHƯA KIỂM TRA</td></tr>
+<tr><th>External font runtime</th><td id="externalStatus" class="pending">CHƯA KIỂM TRA</td></tr>
+<tr><th>Asset size</th><td id="assetSize">—</td></tr>
+</table>
+<p class="small">Lưu ý: QA page có thể dùng cache để xác minh file; số request chuẩn của bài chính vẫn là 2 font file khi cả hai family được render.</p>
+</section>
+
+<div class="qa-grid">
+<section class="sample serif">
+<h2>Source Serif 4</h2>
+<p class="qa-big qa-regular">Ă Â Ê Ô Ơ Ư Đ<br>ă â ê ô ơ ư đ</p>
+<p class="qa-regular">á à ả ã ạ · ấ ầ ẩ ẫ ậ · ắ ằ ẳ ẵ ặ · ế ề ể ễ ệ · ố ồ ổ ỗ ộ · ớ ờ ở ỡ ợ · ứ ừ ử ữ ự</p>
+<p class="qa-medium">Medium/Semibold — Điện Kính Thiên</p>
+<p class="qa-bold">Bold — ĐIỆN KÍNH THIÊN</p>
+</section>
+<section class="sample sans">
+<h2>Source Sans 3</h2>
+<p class="qa-big qa-regular">Ă Â Ê Ô Ơ Ư Đ<br>ă â ê ô ơ ư đ</p>
+<p class="qa-regular">á à ả ã ạ · ấ ầ ẩ ẫ ậ · ắ ằ ẳ ẵ ặ · ế ề ể ễ ệ · ố ồ ổ ỗ ộ · ớ ờ ở ỡ ợ · ứ ừ ử ữ ự</p>
+<p class="qa-medium">Medium/Semibold — Điện Kính Thiên</p>
+<p class="qa-bold">Bold — ĐIỆN KÍNH THIÊN</p>
+</section>
+</div>
+
+<section class="sample">
+<h2>Câu báo chí thật</h2>
+<p class="qa-news serif qa-medium">Điện Kính Thiên được phục dựng đến đâu từ những bằng chứng còn lại?</p>
+<p class="qa-news sans qa-regular">Những gì đã biết, những gì được suy dựng và những gì vẫn chưa thể xác định.</p>
+</section>
+
+<section class="sample">
+<h2>Headline wrapping</h2>
+<h1 style="font-size:var(--text-display);max-width:14ch">Từ bậc đá đến mái điện: Chúng ta thực sự biết chắc đến đâu?</h1>
+<p class="small">Kiểm ở 320px, 375px và 390px: dấu không clipping; heading không vượt viewport; nút/tab không vỡ.</p>
+</section>
+
+<section class="sample">
+<h2>Manual device sign-off</h2>
+<table>
+<thead><tr><th>Thiết bị</th><th>Family</th><th>Dấu/glyph</th><th>Wrap/clipping</th><th>FOUT/FOIT</th><th>Kết quả</th></tr></thead>
+<tbody>
+<tr><td>macOS</td><td>□</td><td>□</td><td>□</td><td>□</td><td>□ PASS</td></tr>
+<tr><td>Windows</td><td>□</td><td>□</td><td>□</td><td>□</td><td>□ PASS</td></tr>
+<tr><td>iPhone</td><td>□</td><td>□</td><td>□</td><td>□</td><td>□ PASS</td></tr>
+<tr><td>Android</td><td>□</td><td>□</td><td>□</td><td>□</td><td>□ PASS</td></tr>
+</tbody>
+</table>
+<p class="small">Italic không được test vì production hiện không dùng italic và không tải italic asset.</p>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const fontFiles = [
+  ["Source Serif 4","./fonts/source-serif-4-vf.woff2"],
+  ["Source Sans 3","./fonts/source-sans-3-vf.woff2"]
+];
+
+async function inspectFile(url){
+  const r = await fetch(url,{cache:"force-cache"});
+  const buf = await r.arrayBuffer();
+  return {
+    ok:r.ok,
+    status:r.status,
+    type:(r.headers.get("content-type")||"").toLowerCase(),
+    size:buf.byteLength
+  };
+}
+
+$("runDiag").addEventListener("click", async ()=>{
+  $("serifStatus").textContent="ĐANG KIỂM TRA";
+  $("sansStatus").textContent="ĐANG KIỂM TRA";
+  $("fileStatus").textContent="ĐANG KIỂM TRA";
+  try{
+    const files = await Promise.all(fontFiles.map(x=>inspectFile(x[1])));
+    await document.fonts.load('400 24px "Source Serif 4"');
+    await document.fonts.load('400 24px "Source Sans 3"');
+    await document.fonts.ready;
+    const serifLoaded=document.fonts.check('400 24px "Source Serif 4"');
+    const sansLoaded=document.fonts.check('400 24px "Source Sans 3"');
+    const fileOK=files.every(f=>f.ok && (f.type.includes("woff2") || f.type.includes("font") || f.type.includes("octet-stream")));
+    const total=files.reduce((a,b)=>a+b.size,0);
+
+    $("serifStatus").textContent=serifLoaded?"PASS — LOADED":"FAIL — NOT LOADED";
+    $("serifStatus").className=serifLoaded?"pass":"fail";
+    $("sansStatus").textContent=sansLoaded?"PASS — LOADED":"FAIL — NOT LOADED";
+    $("sansStatus").className=sansLoaded?"pass":"fail";
+    $("fileStatus").textContent=fileOK ? "PASS — 2 LOCAL FILES REACHABLE" : "FAIL — 404/MIME";
+    $("fileStatus").className=fileOK?"pass":"fail";
+    $("assetSize").textContent=files.map((f,i)=>`${fontFiles[i][0]}: ${f.size.toLocaleString()} B`).join(" · ")+` · Total: ${total.toLocaleString()} B`;
+
+    const fontEntries=performance.getEntriesByType("resource").filter(e=>/\.(woff2?|ttf|otf)(\?|$)/i.test(e.name));
+    const external=fontEntries.filter(e=>!new URL(e.name,location.href).href.startsWith(location.origin + location.pathname.replace(/[^/]*$/,"")));
+    // Strong direct check for prohibited hosts, regardless of path.
+    const prohibited=fontEntries.filter(e=>/fonts\.googleapis\.com|fonts\.gstatic\.com/i.test(e.name));
+    $("externalStatus").textContent=prohibited.length===0 ? "PASS — NO GOOGLE FONT RUNTIME" : "FAIL — EXTERNAL FONT REQUEST";
+    $("externalStatus").className=prohibited.length===0?"pass":"fail";
+  }catch(err){
+    $("fileStatus").textContent="FAIL — "+err;
+    $("fileStatus").className="fail";
+    $("serifStatus").textContent="FAIL/PENDING";
+    $("serifStatus").className="fail";
+    $("sansStatus").textContent="FAIL/PENDING";
+    $("sansStatus").className="fail";
+  }
+});
+
+$("toggleFallback").addEventListener("click",()=>{
+  document.body.classList.toggle("fallback-mode");
+  $("toggleFallback").textContent=document.body.classList.contains("fallback-mode")?"Tắt mô phỏng fallback":"Mô phỏng fallback";
+});
+</script>
+</body>
+</html>

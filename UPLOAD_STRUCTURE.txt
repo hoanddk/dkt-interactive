@@ -1,0 +1,24 @@
+Upload the CONTENTS of this folder to the ROOT of GitHub repository `dkt-interactive`.
+
+Repository root must look exactly like:
+
+dkt-interactive/
+├── index.html
+├── styles.css
+├── app.js
+├── FONT_QA_VIETNAMESE.html
+└── fonts/
+    ├── source-serif-4-vf.woff2
+    ├── source-sans-3-vf.woff2
+    ├── LICENSE_SOURCE_SERIF_4_OFL.txt
+    └── LICENSE_SOURCE_SANS_3_OFL.txt
+
+Do NOT upload the parent folder `DKT_GITHUB_PAGES_UPLOAD_ROOT` as a nested directory.
+Do NOT upload only the ZIP file; GitHub Pages does not unzip it for you.
+
+Expected URLs after Pages deploy:
+Main article:
+https://hoanddk.github.io/dkt-interactive/
+
+Font QA:
+https://hoanddk.github.io/dkt-interactive/FONT_QA_VIETNAMESE.html
