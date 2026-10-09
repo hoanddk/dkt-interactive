@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Prototype interactive Điện Kính Thiên — bản v0.1 phục vụ UX & editorial QC." />
+  <title>Từ bậc đá đến mái điện — Prototype v0.1.3</title>
+  <style>
+:root{
+  --bg:#f4f1ea;--paper:#fffdf8;--ink:#1f2328;--muted:#66645f;--line:#c8c1b3;
+  --accent:#7a4d23;--soft:#ebe4d7;--warning:#7d5b00;--focus:#123b63;
+  --max:1180px;--narrow:820px;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.58}.skip-link{position:absolute;left:-999px;top:0}.skip-link:focus{left:1rem;top:1rem;background:#fff;padding:.75rem;z-index:9999;outline:3px solid var(--focus)}a{color:inherit}.wrap{max-width:var(--max);margin:auto;padding:0 24px}.narrow{max-width:var(--narrow)}.muted{color:var(--muted);font-weight:400;margin-left:.5rem}.small{font-size:.88rem;color:var(--muted)}.site-header{position:sticky;top:0;z-index:50;background:rgba(255,253,248,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}.header-inner{display:flex;justify-content:space-between;align-items:center;gap:1rem;min-height:58px}.header-inner nav{display:flex;gap:1rem;font-size:.9rem}.screen{scroll-margin-top:70px}.hero{padding:72px 0 64px;background:var(--paper)}.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}.eyebrow,.block-id{letter-spacing:.12em;text-transform:uppercase;font-size:.75rem;font-weight:800;color:var(--muted)}h1{font-family:Georgia,serif;font-size:clamp(2.5rem,5vw,5.4rem);line-height:.98;margin:.4rem 0 1.5rem;max-width:13ch}h2{font-family:Georgia,serif;font-size:clamp(2rem,4vw,3.5rem);line-height:1.08;margin:.3rem 0 1rem}h3{line-height:1.2}.dek{font-size:1.2rem;color:#41403c}.asset-frame{margin:0}.placeholder-art,.photo-fallback{min-height:420px;border:1px solid var(--line);background:linear-gradient(145deg,#ded7ca,#f8f3e8);display:grid;place-content:center;text-align:center;position:relative;overflow:hidden}.placeholder-art:before,.photo-fallback:before{content:"";position:absolute;inset:12% 8% 18%;border-bottom:14px solid #887f70;border-left:30px solid transparent;border-right:30px solid transparent;opacity:.6}.placeholder-art span,.placeholder-art small{position:relative;z-index:2}.placeholder-art span{font-weight:800;letter-spacing:.08em}.placeholder-art small{margin-top:.5rem}figcaption{font-size:.88rem;color:var(--muted);padding-top:.6rem}.block{padding:84px 0;background:var(--paper)}.block.alt{background:#ece7dd}.label-row{margin:1rem 0}.badge,.status-badge,.notice,.representation-banner{display:inline-block;font-size:.78rem;font-weight:800;letter-spacing:.055em;padding:.45rem .65rem;border:1px solid currentColor}.ev1{background:#ece9e0}.hotspot-stage{display:grid;grid-template-columns:1.5fr .5fr;gap:22px;margin-top:30px}.photo-fallback{min-height:520px}.placeholder-label{position:absolute;right:12px;bottom:12px;background:#fff;padding:.35rem .5rem;font-size:.72rem;border:1px solid var(--line)}.hotspot{position:absolute;width:40px;height:40px;border-radius:50%;border:2px solid white;background:#1e2b31;color:white;font-weight:800;cursor:pointer;box-shadow:0 0 0 4px rgba(0,0,0,.12)}button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.hotspot-card,.info-panel{background:var(--paper);border:1px solid var(--line);padding:22px}.layer-stack{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:32px 0 14px}.layer{border:1px solid var(--line);background:var(--paper);padding:16px 8px;cursor:pointer;min-height:88px}.layer.active{background:#2d3534;color:#fff}.plan-grid{display:grid;grid-template-columns:1.5fr .5fr;gap:34px;margin-top:30px}.plan-visual{height:520px;background:#f7f4ed;border:1px solid var(--line);position:relative}.plan-shape{position:absolute;border:2px solid #333;display:flex;align-items:flex-start;justify-content:center;transition:opacity .25s ease}.plan-shape span{font-size:.7rem;background:#fff;padding:.2rem .35rem;margin-top:.3rem}.project{inset:5%;border-style:dotted;opacity:.22}.foundation{inset:17% 15%;background:rgba(80,70,50,.08)}.hall{inset:29% 22% 32%;background:rgba(80,70,50,.12);opacity:.25}.court{left:22%;right:22%;bottom:19%;height:13%;background:rgba(80,70,50,.08);opacity:.25}.plan-controls{display:flex;flex-direction:column;gap:8px}.plan-controls button,.tower-controls button,.component-buttons button,.reasoning-chain button,.verb-ladder button,.tablist button{padding:.7rem .85rem;border:1px solid var(--line);background:var(--paper);cursor:pointer;text-align:left}.plan-controls button.is-on,.tower-controls button[aria-pressed="true"],.tablist button[aria-selected="true"]{background:#26302f;color:#fff}.representation-banner{background:#222f31;color:white;margin-bottom:1rem}.tower-layout{display:grid;grid-template-columns:.42fr .58fr;gap:38px;align-items:start}.tower-copy{position:sticky;top:90px;background:var(--paper);padding:24px;border:1px solid var(--line)}.tower-visual-wrap{min-width:0}.tower-svg{width:100%;height:auto;background:#faf8f2;border:1px solid var(--line)}.tower-svg text{font-size:13px;font-family:system-ui,sans-serif}.tower-component{opacity:0;transition:opacity .35s ease}.tower-component.visible{opacity:1}.direct{fill:#d9d2c6;stroke:#2e3536;stroke-width:2}.measured{fill:#e9e2d7;stroke:#2e3536;stroke-width:2}.indirect{fill:#f0ece4;stroke:#475050;stroke-width:2}.recon-line{fill:none;stroke:#705b46;stroke-width:3;stroke-dasharray:10 8;opacity:.65}.recon-label{fill:#6b3f22;font-weight:800}.unknown-zone{fill:none;stroke:#777;stroke-width:2;stroke-dasharray:3 8}.tower-controls{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:10px}.component-buttons{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.tower-nav{display:flex;gap:8px;margin-top:18px}.tower-nav button{padding:.7rem 1rem}.model-tabs{margin-top:30px}.tablist{display:flex;gap:6px}.model-card{border:1px solid var(--line);background:var(--paper);padding:22px}.status-badge{margin-bottom:14px}.research{background:#e8e5da}.unverified{background:#fff1c7;color:#573c00}.owner{background:#e5edf0}.model-schematic{min-height:220px;border:2px dashed var(--line);display:grid;place-content:center;font-size:1.4rem;font-family:Georgia,serif;margin-bottom:1rem}.reasoning-chain{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:30px}.status-grid,.gate-grid,.closure-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:28px}.status-card,.gate-card,.closure-grid article{background:var(--paper);border:1px solid var(--line);padding:20px}.unknown{border-style:dashed}.technical-fallback{margin-top:28px;border:2px solid var(--line);padding:0}.technical-fallback>div{padding:20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:1rem}.technical-fallback>div:last-child{border-bottom:0}.unknown-tag,.announced-tag,.known-tag{font-size:.75rem;font-weight:800}.gate-grid{grid-template-columns:1fr 1fr}.locked{border-style:dashed}.verb-ladder{display:flex;flex-wrap:wrap;gap:6px;margin-top:22px}.final-note{margin-top:34px;padding-top:24px;border-top:1px solid var(--line);font-size:1.2rem}.drawer{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:100}.drawer.open{display:flex;justify-content:flex-end}.drawer-panel{height:100%;width:min(520px,92vw);background:var(--paper);padding:28px;overflow:auto;box-shadow:-12px 0 30px rgba(0,0,0,.2)}.drawer-close{float:right;font-size:2rem;border:0;background:none;cursor:pointer}.site-footer{padding:36px 0;background:#202827;color:#eee}.site-footer .small{color:#cfd4d2}
+@media (max-width:800px){.header-inner nav{display:none}.hero{padding-top:40px}.hero-grid,.hotspot-stage,.plan-grid,.tower-layout{grid-template-columns:1fr}.tower-copy{position:static}.layer-stack{grid-template-columns:1fr}.layer{min-height:auto;text-align:left}.plan-visual{height:380px}.tower-controls{grid-template-columns:1fr 1fr}.status-grid,.gate-grid,.closure-grid{grid-template-columns:1fr}.reasoning-chain span{display:none}.reasoning-chain{align-items:stretch;flex-direction:column}.reasoning-chain button{width:100%}.tablist{overflow:auto}.photo-fallback{min-height:360px}.hotspot-card{min-height:150px}.technical-fallback>div{flex-direction:column}.hero h1{max-width:none}}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* v0.1.1+ retained accessibility/touch fixes */
+button{min-height:44px}
+.hotspot{width:44px;height:44px}
+.drawer-close{min-width:44px;min-height:44px}
+@media (max-width:800px){button{min-height:44px}.hotspot{width:44px;height:44px}}
+
+.editorial-fallback{background:linear-gradient(145deg,#e7e1d6,#f8f5ee);position:relative}.editorial-fallback:after{content:"";position:absolute;left:14%;right:14%;bottom:18%;height:10%;border-top:6px solid #6f695f;border-bottom:2px solid #6f695f;opacity:.55}.provenance-lock{margin-top:14px;background:#fff8e7;border-style:dashed}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Bỏ qua tới nội dung chính</a>
+<header class="site-header" aria-label="Thông tin prototype">
+  <div class="wrap header-inner">
+    <div>
+      <strong>BÀI TƯƠNG TÁC THỬ NGHIỆM 01</strong>
+      <span class="muted">Prototype v0.1.3 · không phải bản xuất bản cuối</span>
+    </div>
+    <nav aria-label="Điều hướng nhanh">
+      <a href="#evidence-tower">Bằng chứng chắc đến đâu?</a>
+      <a href="#control-gates">UNESCO / pháp lý</a>
+      <a href="#closure">Kết luận</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <!-- S00 HERO -->
+  <section class="hero screen" id="s00" data-screen="S00">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">TỪ DẤU TÍCH ĐẾN SUY DỰNG</p>
+        <h1>Từ bậc đá đến mái điện: Chúng ta thực sự biết chắc đến đâu về Điện Kính Thiên?</h1>
+        <p class="dek">Những bậc đá, nền móng và dấu tích khảo cổ cho phép nhận diện khá rõ phần nằm sát mặt đất. Nhưng càng đi lên hệ cột, đấu củng và mái, hình hài Điện Kính Thiên càng phải được ghép lại từ nhiều loại chứng cứ với độ chắc chắn khác nhau.</p>
+        <p>Muốn hiểu một cuộc phục dựng, trước hết phải biết phần nào của công trình vẫn còn ở đó — và phần nào chỉ có thể được suy ra từ những gì còn lại.</p>
+      </div>
+      <figure class="asset-frame" aria-labelledby="hero-cap">
+        <div class="placeholder-art editorial-fallback" role="img" aria-label="Đồ họa biên tập trừu tượng gợi phần nền và thềm còn lại của Điện Kính Thiên; không phải ảnh hiện trạng và không dùng làm bằng chứng lịch sử.">
+          <span>ĐỒ HỌA BIÊN TẬP</span>
+          <small>Minh họa dẫn nhập do tòa soạn dựng; không phải ảnh hiện trạng.</small>
+        </div>
+        <figcaption id="hero-cap"><strong>Đồ họa biên tập — không phải ảnh hiện trạng.</strong> Hình chỉ giữ vai trò dẫn nhập: nền và thềm rồng là điểm xuất phát của quá trình đọc bằng chứng, không phải bằng chứng trực tiếp cho toàn bộ kiến trúc gỗ đã mất.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- B01 S01-S02 -->
+  <section class="block screen" id="remains" data-block="B01">
+    <div class="wrap narrow">
+      <p class="block-id">B01 · NHỮNG GÌ CÒN LẠI</p>
+      <h2>Bắt đầu từ thứ vẫn còn ở đó</h2>
+      <p>Trước khi nhìn những mô hình phục dựng, hãy nhìn phần ít gây tranh cãi nhất: nền điện, thềm rồng và những cấu kiện đá còn lại tại chỗ. Đây là điểm xuất phát của mọi suy luận về Điện Kính Thiên.</p>
+      <div class="label-row"><span class="badge ev1">EVIDENCE LEVEL 1 — CÒN TẠI CHỖ</span></div>
+    </div>
+    <div class="wrap">
+      <div class="hotspot-stage" aria-label="Prototype hotspot trên ảnh hiện trạng">
+        <div class="photo-fallback" role="img" aria-label="Đồ họa biên tập khái niệm cho phần nền/thềm; các hotspot minh họa logic chứng minh được và không chứng minh được. Không phải ảnh hiện trạng.">
+          <button class="hotspot" style="left:28%;top:58%" data-hotspot="them" aria-label="Thềm rồng">1</button>
+          <button class="hotspot" style="left:48%;top:48%" data-hotspot="rong" aria-label="Rồng đá">2</button>
+          <button class="hotspot" style="left:65%;top:68%" data-hotspot="nen" aria-label="Nền điện">3</button>
+          <div class="placeholder-label">ĐỒ HỌA BIÊN TẬP · KHÔNG PHẢI ẢNH HIỆN TRẠNG</div>
+        </div>
+        <aside class="hotspot-card" id="hotspot-card" aria-live="polite">
+          <strong>Chạm một điểm để xem bằng chứng.</strong>
+          <p>Mỗi điểm cho biết hình ảnh này chứng minh được gì và không thể dùng để kết luận điều gì.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- B02 -->
+  <section class="block screen alt" id="beneath" data-block="B02">
+    <div class="wrap narrow">
+      <p class="block-id">B02 · MỘT VỊ TRÍ, NHIỀU LỚP LỊCH SỬ</p>
+      <h2>Một vị trí, nhiều lớp lịch sử</h2>
+      <p>Bài sắp xếp các dấu tích thành <strong>7 giai đoạn lịch sử để dẫn chuyện</strong>; đây không phải cách thay thế phân lớp địa tầng khảo cổ. Cùng một vị trí trung tâm đã trải qua nhiều thời kỳ kiến trúc khác nhau.</p>
+      <p class="notice">SƠ ĐỒ BIÊN TẬP — KHÔNG THEO TỶ LỆ</p>
+    </div>
+    <div class="wrap">
+      <div class="layer-stack" role="list" aria-label="Bảy giai đoạn lịch sử theo khung biên tập">
+        <button role="listitem" class="layer" data-layer="Tiền Thăng Long">Tiền Thăng Long</button>
+        <button role="listitem" class="layer" data-layer="Lý">Lý</button>
+        <button role="listitem" class="layer" data-layer="Trần">Trần</button>
+        <button role="listitem" class="layer active" data-layer="Lê sơ">Lê sơ · Kính Thiên</button>
+        <button role="listitem" class="layer" data-layer="Lê Trung hưng">Lê Trung hưng</button>
+        <button role="listitem" class="layer" data-layer="Nguyễn">Nguyễn · Long Thiên</button>
+        <button role="listitem" class="layer" data-layer="Pháp / hiện đại">Pháp / hiện đại</button>
+      </div>
+      <div class="info-panel" id="layer-info" aria-live="polite">
+        <h3>Lê sơ</h3>
+        <p><strong>Điều giúp hiểu:</strong> đây là lớp trung tâm đối với câu hỏi về Điện Kính Thiên thời Lê.</p>
+        <p><strong>Không suy quá:</strong> dấu tích của thời kỳ khác không được dùng như bản mô tả trực tiếp của Kính Thiên Lê sơ.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- B03 -->
+  <section class="block screen" id="measure" data-block="B03">
+    <div class="wrap narrow">
+      <p class="block-id">B03 · KHẢO CỔ ĐÃ ĐO ĐƯỢC GÌ?</p>
+      <h2>Ba con số, ba phạm vi</h2>
+      <p><strong>Khoảng 10.700 m²</strong> là phạm vi toàn dự án; <strong>2.792 m²</strong> là diện tích nền móng cổ; còn khoảng <strong>1.585 m²</strong> là phần lòng chính điện được xác định qua hệ móng. Đây không phải ba đáp án khác nhau cho cùng một mặt bằng.</p>
+    </div>
+    <div class="wrap plan-grid">
+      <div class="plan-visual" id="plan-visual" role="img" aria-label="Sơ đồ đơn giản hóa ba phạm vi đo: toàn dự án, nền móng cổ, lòng chính điện và sân Đan Trì. Không thay thế bản vẽ khảo cổ gốc.">
+        <div class="plan-shape project"><span>TOÀN DỰ ÁN ≈ 10.700 m²</span></div>
+        <div class="plan-shape foundation"><span>NỀN MÓNG CỔ 2.792 m²</span></div>
+        <div class="plan-shape hall"><span>LÒNG ĐIỆN ≈ 1.585 m²</span></div>
+        <div class="plan-shape court"><span>ĐAN TRÌ 1.105 m²</span></div>
+      </div>
+      <div class="plan-controls" aria-label="Điều khiển sơ đồ phạm vi">
+        <button data-plan="foundation" class="is-on">Nền móng</button>
+        <button data-plan="hall">Lòng điện</button>
+        <button data-plan="court">Đan Trì</button>
+        <button data-plan="project">Toàn khu</button>
+        <p class="small">Sơ đồ đơn giản hóa theo số liệu công bố; không thay thế bản vẽ đo khảo cổ. Mâu thuẫn 36/60 móng không được biến thành geometry khẳng định.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- B04 -->
+  <section class="block screen tower-block alt" id="evidence-tower" data-block="B04">
+    <div class="wrap narrow">
+      <p class="block-id">B04 · BẰNG CHỨNG CHẮC ĐẾN ĐÂU?</p>
+      <p class="representation-banner">MÔ HÌNH BIÊN TẬP VỀ MỨC BẰNG CHỨNG</p>
+      <h2>Càng lên cao, bằng chứng càng thưa</h2>
+      <p>Những phần khác nhau của Điện Kính Thiên không có cùng một mức độ chắc chắn. Phần tương tác này dẫn người đọc từ phần còn tại chỗ tới phần chưa thể xác định.</p>
+    </div>
+    <div class="wrap tower-layout">
+      <div class="tower-copy" id="tower-copy" aria-live="polite">
+        <p class="eyebrow">TRẠNG THÁI 01</p>
+        <h3>Mức 1 — Còn tại chỗ</h3>
+        <p>Những bộ phận vẫn tồn tại tại di tích và có thể quan sát trực tiếp.</p>
+        <p class="insight">Đây là lớp bằng chứng gần đối tượng nhất.</p>
+        <div class="tower-nav">
+          <button id="tower-prev" disabled>Trước</button>
+          <button id="tower-next">Thêm mức 2</button>
+        </div>
+      </div>
+      <div class="tower-visual-wrap">
+        <svg id="tower-svg" class="tower-svg" viewBox="0 0 500 520" role="img" aria-labelledby="tower-title tower-desc">
+          <title id="tower-title">Tháp bằng chứng Điện Kính Thiên</title>
+          <desc id="tower-desc">Mô hình biên tập biểu diễn các phần còn tại chỗ, phần đo được, chứng cứ gián tiếp, phần suy dựng và vùng chưa xác định. Mức 4 dùng nét đứt và trong mờ; mức 5 không dựng hình cụ thể.</desc>
+          <g class="tower-component level5" data-level="5" data-component="height">
+            <rect x="95" y="30" width="310" height="70" class="unknown-zone" />
+            <text x="250" y="70" text-anchor="middle">? CHIỀU CAO CHƯA XÁC ĐỊNH</text>
+          </g>
+          <g class="tower-component level4" data-level="4" data-component="roof">
+            <path d="M110 180 L250 110 L390 180" class="recon-line" />
+            <path d="M140 205 L250 145 L360 205" class="recon-line" />
+            <text x="250" y="135" text-anchor="middle" class="recon-label">SUY DỰNG · MÁI</text>
+          </g>
+          <g class="tower-component level3" data-level="3" data-component="brackets">
+            <rect x="150" y="210" width="200" height="35" rx="4" class="indirect" />
+            <text x="250" y="233" text-anchor="middle">ĐẤU CỦNG · CHỨNG CỨ GIÁN TIẾP</text>
+          </g>
+          <g class="tower-component level4" data-level="4" data-component="columns">
+            <line x1="175" y1="250" x2="175" y2="390" class="recon-line" />
+            <line x1="235" y1="250" x2="235" y2="390" class="recon-line" />
+            <line x1="295" y1="250" x2="295" y2="390" class="recon-line" />
+            <line x1="355" y1="250" x2="355" y2="390" class="recon-line" />
+            <text x="250" y="285" text-anchor="middle" class="recon-label">CỘT GỖ · SUY DỰNG</text>
+          </g>
+          <g class="tower-component level2" data-level="2" data-component="foundation">
+            <rect x="105" y="390" width="290" height="45" class="measured" />
+            <text x="250" y="418" text-anchor="middle">NỀN / MÓNG · ĐÃ ĐO</text>
+          </g>
+          <g class="tower-component level1" data-level="1" data-component="steps">
+            <path d="M160 438 H340 L370 485 H130 Z" class="direct" />
+            <text x="250" y="470" text-anchor="middle">THỀM / RỒNG ĐÁ · CÒN TẠI CHỖ</text>
+          </g>
+        </svg>
+        <div class="tower-controls" role="group" aria-label="Chọn mức bằng chứng">
+          <button data-level-control="1" aria-pressed="true">1 · Còn tại chỗ</button>
+          <button data-level-control="2" aria-pressed="false">2 · Đã đo</button>
+          <button data-level-control="3" aria-pressed="false">3 · Gián tiếp</button>
+          <button data-level-control="4" aria-pressed="false">4 · Suy dựng</button>
+          <button data-level-control="5" aria-pressed="false">? · Chưa biết</button>
+        </div>
+        <p class="small">Mức 4 luôn dùng nét đứt + nhãn <strong>SUY DỰNG</strong>. Mức 5 để trống hình học cụ thể.</p>
+        <div class="info-panel provenance-lock" id="component-buttons" aria-label="Trạng thái provenance B04">
+          <strong>KHÓA NGUỒN v0.1.3</strong>
+          <p>Bảng nguồn theo từng thành phần tạm thời không hiển thị vì nguồn gốc + trang/mục chưa hoàn chỉnh cho toàn bộ thành phần. Đồ họa vẫn giữ thang bằng chứng đã được khóa; mã nguồn nội bộ chưa đầy đủ sẽ không hiển thị như một nguồn hoàn chỉnh cho người đọc.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- B05 -->
+  <section class="block screen" id="models" data-block="B05">
+    <div class="wrap narrow">
+      <p class="block-id">B05 · KHÔNG PHẢI HÌNH ẢNH NÀO CŨNG CÓ CÙNG GIÁ TRỊ</p>
+      <h2>Những hình ảnh trông hoàn chỉnh có thể mang những ý nghĩa rất khác nhau</h2>
+      <p>Một mô hình nghiên cứu, một đồ họa của chủ đầu tư và một thiết kế được phê duyệt là ba loại hình khác nhau. Prototype dùng schematic fallback để layout không phụ thuộc media chưa clear quyền.</p>
+    </div>
+    <div class="wrap model-tabs" data-tabs>
+      <div class="tablist" role="tablist" aria-label="So sánh representation status">
+        <button role="tab" aria-selected="true" aria-controls="model-a" id="tab-a" tabindex="0">Mô hình A</button>
+        <button role="tab" aria-selected="false" aria-controls="model-b" id="tab-b" tabindex="-1">Phương án B</button>
+        <button role="tab" aria-selected="false" aria-controls="model-c" id="tab-c" tabindex="-1">Đồ họa C</button>
+      </div>
+      <article id="model-a" role="tabpanel" aria-labelledby="tab-a" class="model-card">
+        <div class="status-badge research">MÔ HÌNH NGHIÊN CỨU</div>
+        <div class="model-schematic">1.188 m² · sâu 6 gian</div>
+        <p>Hình ảnh được tạo để kiểm nghiệm một giả thuyết khoa học. Không đồng nghĩa với phương án thi công.</p>
+      </article>
+      <article id="model-b" role="tabpanel" aria-labelledby="tab-b" class="model-card" hidden>
+        <div class="status-badge unverified">CHƯA XÁC MINH TRẠNG THÁI PHÊ DUYỆT</div>
+        <div class="model-schematic">≈1.585 m² · sâu 5 gian</div>
+        <p>Mô tả phương án có kích thước khác mô hình nghiên cứu. Prototype không gắn nhãn “thiết kế đã duyệt”.</p>
+      </article>
+      <article id="model-c" role="tabpanel" aria-labelledby="tab-c" class="model-card" hidden>
+        <div class="status-badge owner">ĐỒ HỌA CỦA CHỦ ĐẦU TƯ</div>
+        <div class="model-schematic">SƠ ĐỒ BIÊN TẬP · PHƯƠNG ÁN THAY THẾ</div>
+        <p>Nếu dùng hình thực tế ở bản publish, trạng thái phê duyệt phải được xác minh riêng.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- B06 -->
+  <section class="block screen alt" id="roof-case" data-block="B06">
+    <div class="wrap narrow">
+      <p class="block-id">B06 · MÁI ĐIỆN ĐƯỢC SUY DỰNG NHƯ THẾ NÀO?</p>
+      <h2>Một mái điện được suy ra như thế nào?</h2>
+      <p>Reasoning không bắt đầu từ một mái hoàn chỉnh. Nó đi từ vật chứng thật tới mô hình, cấu kiện, so sánh và cuối cùng mới là một giả thuyết hình thái.</p>
+    </div>
+    <div class="wrap reasoning-chain" aria-label="Chuỗi suy luận cho giả thuyết mái">
+      <button data-reason="tile">1 · Ngói thật</button>
+      <span aria-hidden="true">→</span>
+      <button data-reason="model">2 · Mô hình đất nung</button>
+      <span aria-hidden="true">→</span>
+      <button data-reason="wood">3 · Cấu kiện gỗ</button>
+      <span aria-hidden="true">→</span>
+      <button data-reason="compare">4 · So sánh</button>
+      <span aria-hidden="true">→</span>
+      <button data-reason="hypothesis">5 · Giả thuyết mái</button>
+    </div>
+    <div class="wrap info-panel" id="reason-info" aria-live="polite">
+      <h3>1 · Ngói thật</h3>
+      <p>Cho biết loại vật liệu/trang trí mái từng tồn tại. Chưa cho biết toàn bộ hình thái mái.</p>
+    </div>
+    <div class="wrap"><p class="notice">EVIDENCE LEVEL 4 — SUY DỰNG THEO BẰNG CHỨNG HIỆN CÓ</p></div>
+  </section>
+
+  <!-- B07 -->
+  <section class="block screen" id="preserve" data-block="B07">
+    <div class="wrap narrow">
+      <p class="block-id">B07 · XÂY PHÍA TRÊN, BẢO TỒN PHÍA DƯỚI</p>
+      <h2>Xây phía trên, giữ phần phía dưới</h2>
+      <p>Phần nằm dưới đất chính là lớp chứng cứ quan trọng nhất. Phần này chỉ phân biệt những gì đã xác lập, những nguyên tắc chủ đầu tư đã nêu và những thông số chưa công khai.</p>
+    </div>
+    <div class="wrap status-grid">
+      <article class="status-card">
+        <h3>ĐÃ XÁC LẬP</h3>
+        <p>Di tích khảo cổ bên dưới là đối tượng cần được bảo vệ trong quá trình phục dựng.</p>
+      </article>
+      <article class="status-card">
+        <h3>CHỦ ĐẦU TƯ ĐÃ NÊU</h3>
+        <p>Hệ sàn bảo vệ, lấp cát bảo tồn và nguyên tắc hạn chế can thiệp trực tiếp vào kiến trúc gốc.</p>
+      </article>
+      <article class="status-card unknown">
+        <h3>CHƯA CÔNG KHAI</h3>
+        <p>Tải trọng, độ lún, thoát nước, PCCC, quan trắc dưới sàn, khả năng đảo ngược và các thông số kỹ thuật chi tiết.</p>
+      </article>
+    </div>
+    <div class="wrap technical-fallback" role="img" aria-label="Sơ đồ biên tập về điều đã xác lập, điều chủ đầu tư đã nêu và điều chưa công khai. Không phải bản vẽ kỹ thuật thật.">
+      <div>PHẦN XÂY MỚI <span class="unknown-tag">THÔNG SỐ CHƯA CÔNG KHAI</span></div>
+      <div>NGUYÊN TẮC BẢO VỆ <span class="announced-tag">ĐÃ ĐƯỢC NÊU</span></div>
+      <div>DI TÍCH GỐC <span class="known-tag">ĐÃ XÁC LẬP</span></div>
+    </div>
+    <p class="wrap notice">SƠ ĐỒ BIÊN TẬP — KHÔNG PHẢI BẢN VẼ KỸ THUẬT</p>
+  </section>
+
+  <!-- B08 -->
+  <section class="block screen alt" id="control-gates" data-block="B08">
+    <div class="wrap narrow">
+      <p class="block-id">B08 · NHỮNG ĐIỀU KIỆN PHẢI VƯỢT QUA</p>
+      <h2>UNESCO không phải một nút “đồng ý / không đồng ý”</h2>
+      <p>Mỗi quyết định cần đọc đủ <strong>động từ + phạm vi + điều kiện + ngoại lệ</strong>. Phần này chỉ giữ những mốc trực tiếp giúp hiểu các điều kiện kiểm soát việc phục dựng.</p>
+    </div>
+    <div class="wrap gate-grid">
+      <article class="gate-card">
+        <p class="eyebrow">GIAI ĐOẠN 1 · 2025–2030</p>
+        <h3>“Confirms its agreement”</h3>
+        <p>Đồng ý trong phạm vi nêu tại quyết định, <strong>ngoại trừ tái thiết Cổng Điện Kính Thiên</strong>, và kèm yêu cầu hồ sơ chi tiết được WHC/ICOMOS xem xét trước tái thiết.</p>
+      </article>
+      <article class="gate-card locked">
+        <p class="eyebrow">GIAI ĐOẠN 2 · 2030–2035</p>
+        <h3>Chưa mở cho tái thiết/hạ giải</h3>
+        <p>Quyết định yêu cầu không tái thiết hay hạ giải thêm cho tới khi có thêm căn cứ/đánh giá cần thiết.</p>
+      </article>
+    </div>
+    <div class="wrap verb-ladder" aria-label="Thang động từ UNESCO">
+      <button data-verb="takes note">takes note · ghi nhận</button>
+      <button data-verb="considers">considers · xem xét</button>
+      <button data-verb="supports in principle">supports in principle · ủng hộ về nguyên tắc</button>
+      <button data-verb="confirms its agreement">confirms its agreement · xác nhận đồng ý</button>
+      <button data-verb="requests">requests · yêu cầu</button>
+    </div>
+    <div class="wrap info-panel" id="verb-info" aria-live="polite">
+      <h3>Chạm một động từ</h3>
+      <p>Chọn một động từ để xem ý nghĩa và giới hạn của cách diễn đạt.</p>
+    </div>
+  </section>
+
+  <!-- B09 -->
+  <section class="block screen" id="closure" data-block="B09">
+    <div class="wrap narrow">
+      <p class="block-id">B09 · ĐIỀU ĐÃ BIẾT, ĐIỀU SUY DỰNG, ĐIỀU CÒN BỎ NGỎ</p>
+      <h2>Đã biết — Suy dựng — Còn mở</h2>
+      <p>Sau hành trình này, Điện Kính Thiên không còn là một hình ảnh duy nhất mà là ba vùng tri thức có mức chắc chắn khác nhau.</p>
+    </div>
+    <div class="wrap closure-grid">
+      <article><h3>ĐÃ BIẾT / ĐÃ XÁC LẬP</h3><ul><li>Dấu tích đá còn tại chỗ.</li><li>Một số phạm vi nền, lòng điện, Đan Trì và hệ móng đã đo/nhận diện.</li><li>Một số vật chứng kiến trúc đã được phát hiện.</li></ul></article>
+      <article><h3>SUY DỰNG</h3><ul><li>Hệ cột gỗ.</li><li>Hệ mái và hình thái tổng thể phía trên.</li><li>Cách ghép các nguồn thành một phương án cụ thể.</li></ul></article>
+      <article><h3>CÒN MỞ</h3><ul><li>Chiều cao tổng thể.</li><li>Một số lựa chọn thiết kế cuối cùng.</li><li>Nhiều thông số kỹ thuật bảo tồn và hồ sơ tuân thủ chưa được công khai.</li></ul></article>
+    </div>
+    <div class="wrap final-note">
+      <p><strong>Một hình ảnh càng hoàn chỉnh không có nghĩa bằng chứng phía sau nó càng hoàn chỉnh.</strong></p>
+      <p>Giá trị của một cuộc phục dựng không chỉ nằm ở hình ảnh thuyết phục, mà ở khả năng truy ngược mỗi phần của hình ảnh ấy về bằng chứng — và giữ lại trung thực ranh giới chưa biết.</p>
+    </div>
+  </section>
+</main>
+
+<div class="drawer" id="evidence-drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <div class="drawer-panel" tabindex="-1">
+    <button class="drawer-close" id="drawer-close" aria-label="Đóng bảng căn cứ">×</button>
+    <h2 id="drawer-title">Căn cứ của thành phần</h2>
+    <div id="drawer-content"></div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>Prototype v0.1.3</strong> · Ưu tiên phương án thay thế an toàn · Không dùng tư liệu chưa rõ quyền sử dụng làm dependency bắt buộc.</p>
+    <p class="small">Bản này phục vụ kiểm tra triển khai. Quyền, provenance và accessibility cần được kiểm lại ở kiểm tra cuối trước xuất bản.</p>
+  </div>
+</footer>
+<script id="v013-interactions">
+const towerStates = {
+  1:{title:'Mức 1 — Còn tại chỗ',copy:'Những bộ phận vẫn tồn tại tại di tích và có thể quan sát trực tiếp.',insight:'Đây là lớp bằng chứng gần đối tượng nhất.',next:'Thêm mức 2'},
+  2:{title:'Mức 2 — Đã đo / có vật chứng',copy:'Khảo cổ và hiện vật cho phép xác lập kích thước, vị trí hoặc đặc điểm cụ thể.',insight:'Đo được một phần không đồng nghĩa đã xác lập toàn bộ công trình.',next:'Thêm mức 3'},
+  3:{title:'Mức 3 — Suy từ chứng cứ gián tiếp',copy:'Cấu kiện hoặc sử liệu cho manh mối về nguyên lý kiến trúc nhưng không còn là một bộ phận nguyên vẹn tại chỗ.',insight:'Từ đây, interpretation bắt đầu đóng vai trò lớn hơn.',next:'Thêm mức 4'},
+  4:{title:'Mức 4 — Suy dựng',copy:'Nhiều nguồn được ghép lại để tạo thành một phương án hình thái.',insight:'Có căn cứ nhưng vẫn còn lựa chọn diễn giải. Mức 4 luôn là suy dựng.',next:'Hiện mức 5'},
+  5:{title:'Mức 5 — Chưa xác định',copy:'Hiện chưa đủ dữ liệu để thể hiện một hình dạng cụ thể.',insight:'Khoảng trống là một kết quả kiểm chứng, không phải phần cần được vẽ cho đầy.',next:'Khám phá tự do'}
+};
+let towerLevel=1;
+const towerCopy=document.getElementById('tower-copy');
+const towerPrev=document.getElementById('tower-prev');
+const towerNext=document.getElementById('tower-next');
+function renderTower(level){
+  towerLevel=level;
+  document.querySelectorAll('.tower-component').forEach(el=>{
+    const lv=Number(el.dataset.level);
+    el.classList.toggle('visible', lv<=level);
+  });
+  const s=towerStates[level];
+  towerCopy.querySelector('.eyebrow').textContent=`TRẠNG THÁI 0${level}`;
+  towerCopy.querySelector('h3').textContent=s.title;
+  const ps=towerCopy.querySelectorAll('p');
+  ps[1].textContent=s.copy;
+  towerCopy.querySelector('.insight').textContent=s.insight;
+  towerPrev.disabled=level===1;
+  towerNext.textContent=s.next;
+  towerNext.disabled=level===5;
+  document.querySelectorAll('[data-level-control]').forEach(btn=>btn.setAttribute('aria-pressed', String(Number(btn.dataset.levelControl)<=level)));
+}
+towerNext?.addEventListener('click',()=>renderTower(Math.min(5,towerLevel+1)));
+towerPrev?.addEventListener('click',()=>renderTower(Math.max(1,towerLevel-1)));
+document.querySelectorAll('[data-level-control]').forEach(btn=>btn.addEventListener('click',()=>renderTower(Number(btn.dataset.levelControl))));
+renderTower(1);
+
+const hotspotData={
+  them:{title:'Thềm rồng phía Nam',html:'<p><strong>CHỨNG MINH ĐƯỢC:</strong> Dấu tích đá còn tại chỗ và hình thức quan sát được.</p><p><strong>KHÔNG CHỨNG MINH ĐƯỢC:</strong> Hệ cột, mái hay chiều cao toàn điện.</p><p class="small">EVIDENCE LEVEL 1</p>'},
+  rong:{title:'Rồng đá',html:'<p><strong>CHỨNG MINH ĐƯỢC:</strong> Chi tiết điêu khắc, vật liệu và hiện trạng phần đá còn tồn tại.</p><p><strong>KHÔNG CHỨNG MINH ĐƯỢC:</strong> Niên đại của mọi chi tiết nếu không đối chiếu hồ sơ; không chứng minh hình thái điện gỗ.</p>'},
+  nen:{title:'Nền điện',html:'<p><strong>CHỨNG MINH ĐƯỢC:</strong> Vị trí và hiện trạng nền nhìn thấy trên mặt đất.</p><p><strong>KHÔNG CHỨNG MINH ĐƯỢC:</strong> Ảnh hiện trạng không thay bản vẽ đo khảo cổ hay địa tầng phía dưới.</p>'}
+};
+document.querySelectorAll('[data-hotspot]').forEach(btn=>btn.addEventListener('click',()=>{
+  const d=hotspotData[btn.dataset.hotspot];
+  const card=document.getElementById('hotspot-card'); card.innerHTML=`<h3>${d.title}</h3>${d.html}`;
+}));
+
+const layerInfo={
+  'Tiền Thăng Long':['Dấu tích sớm trước kinh thành Thăng Long.','Không suy trực tiếp hình thái Kính Thiên Lê sơ.'],
+  'Lý':['Dấu tích thời Lý trong khu trung tâm.','Giá trị chủ yếu là bối cảnh lịch sử và so sánh có điều kiện.'],
+  'Trần':['Dấu tích thời Trần trong chuỗi sử dụng khu vực.','Không mặc nhiên là tiền thân trực tiếp có cùng hình thái.'],
+  'Lê sơ':['Lớp trung tâm đối với câu hỏi về Điện Kính Thiên.','Cần tách phần đo được với phần suy dựng phía trên.'],
+  'Lê Trung hưng':['Dấu tích đại trùng tu và sử dụng lại một phần nền móng.','Không đồng nhất mọi dấu tích với Lê sơ.'],
+  'Nguyễn':['Điện Long Thiên là lớp kiến trúc khác.','Ảnh cuối thế kỷ XIX không được dùng như ảnh trực tiếp của Kính Thiên thời Lê.'],
+  'Pháp / hiện đại':['Lớp phủ kiến trúc thời Pháp và hiện đại.','Không dùng để suy hình thái nguyên gốc của chính điện Lê.']
+};
+document.querySelectorAll('.layer').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.layer').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+  const d=layerInfo[btn.dataset.layer];
+  document.getElementById('layer-info').innerHTML=`<h3>${btn.dataset.layer}</h3><p><strong>Điều giúp hiểu:</strong> ${d[0]}</p><p><strong>Không suy quá:</strong> ${d[1]}</p>`;
+}));
+
+document.querySelectorAll('[data-plan]').forEach(btn=>btn.addEventListener('click',()=>{
+  btn.classList.toggle('is-on'); const target=document.querySelector('.plan-shape.'+btn.dataset.plan); target.style.opacity=btn.classList.contains('is-on')?'1':'.18';
+}));
+
+const reasonData={tile:['Ngói thật','Cho biết loại vật liệu/trang trí mái từng tồn tại. Chưa cho biết toàn bộ hình thái mái.'],model:['Mô hình đất nung','Cung cấp thông tin về nguyên lý kiến trúc thời Lê sơ. Không mặc nhiên là bản thu nhỏ trực tiếp của Điện Kính Thiên.'],wood:['Cấu kiện gỗ','Giúp nhận diện một số kỹ thuật kết cấu. Chưa đủ để xác định trọn hệ khung.'],compare:['So sánh','Giúp kiểm tra giả thuyết bằng các truyền thống kiến trúc liên quan; giá trị giảm khi khoảng cách niên đại, địa lý và loại hình tăng.'],hypothesis:['Giả thuyết mái','MỨC BẰNG CHỨNG 4 — SUY DỰNG THEO BẰNG CHỨNG HIỆN CÓ. Không phải hình dạng lịch sử duy nhất đã xác định.']};
+document.querySelectorAll('[data-reason]').forEach(btn=>btn.addEventListener('click',()=>{const d=reasonData[btn.dataset.reason];document.getElementById('reason-info').innerHTML=`<h3>${d[0]}</h3><p>${d[1]}</p>`;}));
+
+const verbData={'takes note':'Ghi nhận. Không đồng nghĩa phê duyệt.','considers':'Nhận định/xem xét rằng một hành động có thể tiến hành trong phạm vi được nêu.','supports in principle':'Ủng hộ về nguyên tắc; không đồng nghĩa phê duyệt thiết kế cụ thể.','confirms its agreement':'Xác nhận sự đồng ý trong phạm vi nêu tại quyết định; phải đọc cùng ngoại lệ và điều kiện.','requests':'Đưa ra yêu cầu tiếp theo mà phía quốc gia cần thực hiện.'};
+document.querySelectorAll('[data-verb]').forEach(btn=>btn.addEventListener('click',()=>{document.getElementById('verb-info').innerHTML=`<h3>${btn.dataset.verb}</h3><p>${verbData[btn.dataset.verb]}</p>`;}));
+
+// Tabs: B05
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function activateTab(tab,{focus=false}={}){
+  tabs.forEach(t=>{t.setAttribute('aria-selected','false');t.setAttribute('tabindex','-1');document.getElementById(t.getAttribute('aria-controls')).hidden=true;});
+  tab.setAttribute('aria-selected','true');tab.setAttribute('tabindex','0');document.getElementById(tab.getAttribute('aria-controls')).hidden=false;if(focus)tab.focus();
+}
+tabs.forEach((tab,i)=>{
+  tab.addEventListener('click',()=>activateTab(tab));
+  tab.addEventListener('keydown',e=>{
+    let ni=null;if(e.key==='ArrowRight')ni=(i+1)%tabs.length;else if(e.key==='ArrowLeft')ni=(i-1+tabs.length)%tabs.length;else if(e.key==='Home')ni=0;else if(e.key==='End')ni=tabs.length-1;
+    if(ni!==null){e.preventDefault();activateTab(tabs[ni],{focus:true});}
+  });
+});
+
+// Evidence Drawer
+let evidenceData=null;fetch('data/evidence-tower.json').then(r=>r.json()).then(d=>evidenceData=d).catch(()=>{});
+const drawer=document.getElementById('evidence-drawer'),panel=drawer.querySelector('.drawer-panel'),closeBtn=document.getElementById('drawer-close');let lastFocus=null;
+function openDrawer(id){if(!evidenceData)return;const c=evidenceData.components.find(x=>x.id===id);if(!c)return;lastFocus=document.activeElement;document.getElementById('drawer-content').innerHTML=`<p class="badge">${c.reader_label}</p><h3>${c.name}</h3><p><strong>Mức bằng chứng:</strong> ${c.level}</p><p><strong>Loại thể hiện:</strong> ${c.representation_status}</p><p><strong>Biết được:</strong> ${c.supports}</p><p><strong>Không được suy ra:</strong> ${c.does_not_support}</p><p><strong>Mã nhận định:</strong> ${c.claim_id}</p><p><strong>Nguồn:</strong> ${c.source_ids.length?c.source_ids.join(', '):'Chưa có dữ liệu hình học đủ để xác định'}</p>`;drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');panel.focus();}
+function closeDrawer(){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');lastFocus?.focus();}
+// v0.1.2: component-level Source Drawer disabled in publish candidate until provenance_status COMPLETE.
+document.querySelectorAll('[data-component-open]').forEach(btn=>{btn.disabled=true;btn.setAttribute('aria-disabled','true');});closeBtn.addEventListener('click',closeDrawer);drawer.addEventListener('click',e=>{if(e.target===drawer)closeDrawer();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawer.classList.contains('open'))closeDrawer();});
+
+// v0.1.1: keyboard focus management for modal drawer
+function getDrawerFocusable(){return [...panel.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.offsetParent!==null);}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Tab' && drawer.classList.contains('open')){
+    const items=getDrawerFocusable(); if(!items.length){e.preventDefault();panel.focus();return;}
+    const first=items[0], last=items[items.length-1];
+    if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
+
+</script>
+</body>
+</html>
