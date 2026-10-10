@@ -151,6 +151,65 @@
       revision_type:new URLSearchParams(location.search).get('editorial_mode')==='post_publish'?'POST_PUBLISH_ASSET_UPDATE':
         new URLSearchParams(location.search).get('editorial_mode')==='controlled'?'POST_BASELINE_ASSET_CHANGE':'LIVE_EDIT_ASSET_DRAFT'};
   };
+  // Editorial labels only: gate codes, IDs and manifest remain unchanged in the data model.
+  const typeLabels = {
+    PHOTO_CURRENT:'Ảnh hiện trạng', ARCHIVAL_PHOTO:'Ảnh tư liệu',
+    EDITORIAL_GRAPHIC:'Đồ họa biên tập', SCHEMATIC:'Sơ đồ',
+    RECONSTRUCTION:'Ảnh phục dựng', MAP:'Bản đồ',
+    DATA_VISUAL:'Đồ họa dữ liệu', PLACEHOLDER:'Ảnh giữ chỗ'
+  };
+  const gateLabels = {
+    HOLD_FOR_RESEARCH:'Đang chờ xác minh tư liệu',
+    RIGHTS_NOT_CLEARED:'Chưa xác nhận quyền sử dụng',
+    PROVENANCE_NOT_COMPLETE:'Thông tin nguồn gốc chưa đầy đủ',
+    PLACEHOLDER_NOT_FINAL:'Ảnh giữ chỗ chưa thể xuất bản',
+    RECONSTRUCTION_LABEL_REQUIRED:'Ảnh phục dựng cần ghi rõ tính giả định',
+    SCHEMATIC_LABEL_REQUIRED:'Sơ đồ cần ghi rõ giới hạn tỷ lệ',
+    EDITORIAL_GRAPHIC_LABEL_REQUIRED:'Đồ họa cần ghi rõ tính chất minh họa',
+    ARCHIVAL_SOURCE_CONTEXT_REQUIRED:'Ảnh tư liệu cần nguồn và bối cảnh',
+    ALT_REQUIRED:'Chưa có mô tả ảnh cho accessibility',
+    ALT_DUPLICATES_CAPTION:'Mô tả ảnh trùng caption',
+    CHANGE_REASON_REQUIRED:'Cần ghi lý do thay ảnh',
+    BINARY_RESELECT_OR_CONTROLLED_UPLOAD_REQUIRED:'Cần chọn lại file ảnh để hoàn tất bàn giao'
+  };
+  const humanGate = code => gateLabels[code] || 'Cần kiểm tra bổ sung trong chi tiết kỹ thuật';
+  const readiness = (rec,hold) => hold ? 'Hold · Chờ xác minh' :
+    rec.gate_reasons.length ? 'Not Final · Chưa đủ điều kiện' : 'Ready for Review · Chờ duyệt';
+  const rightsLabel = value => value==='CLEARED'?'Đã xác nhận':
+    value==='RESTRICTED'?'Bị hạn chế':'Chưa kiểm tra';
+  const provenanceLabel = value => value==='COMPLETE'?'Đầy đủ':
+    value==='PARTIAL'?'Một phần':'Thiếu';
+  const addLine = (parent,cls,label,value) => {
+    const p=document.createElement('p');
+    p.className=cls;
+    const strong=document.createElement('strong');
+    strong.textContent=label+': ';
+    p.append(strong,document.createTextNode(value));
+    parent.append(p);
+    return p;
+  };
+  const addTechnical = (parent,rec,slot) => {
+    const details=document.createElement('details');
+    details.className='ec-asset-advanced';
+    const summary=document.createElement('summary');
+    summary.textContent='CHI TIẾT KỸ THUẬT';
+    details.append(summary);
+    const m=rec.new;
+    const technical=[
+      ['asset_id',m.asset_id],['file_name',m.file_name],
+      ['slot_id',slot.id],['version',m.version],
+      ['asset_type',m.asset_type],['representation_status',m.representation_status],
+      ['rights_status',m.rights_status],['provenance_status',m.provenance_status],
+      ['evidence_impact',m.evidence_impact],['gate_codes',rec.gate_reasons],
+      ['QC_flags',rec.impactQc],['upload_manifest',rec.upload_manifest],
+      ['review_status',rec.review_status],['publish_eligible',rec.publish_eligible]
+    ];
+    const pre=document.createElement('pre');
+    pre.className='ec-asset-technical-data';
+    pre.textContent=JSON.stringify(Object.fromEntries(technical),null,2);
+    details.append(pre);
+    parent.append(details);
+  };
   const render = s => {
     const rec=s.record;
     const display=s.preview;
@@ -159,32 +218,58 @@
     display.hidden=false;
     s.target.classList.add('ec-has-asset-change');
     const m=rec.new;
-    const label=document.createElement('div');
-    label.className='ec-asset-status';
-    label.textContent='DRAFT · '+s.id+' · '+(s.hold?'EVIDENCE-SENSITIVE / HOLD_FOR_RESEARCH · ':'')+(rec.gate_reasons.length?'NOT FINAL':'REVIEW PENDING');
-    display.append(label);
+    // Image first; never put internal status, asset ID or file hash above the caption.
     if (m.removed) {
-      const p=document.createElement('p');p.textContent='REMOVED IN DRAFT — baseline vẫn nguyên trong Git.';display.append(p);
+      const p=document.createElement('p');p.className='ec-asset-empty';
+      p.textContent='Ảnh đã được gỡ trong bản nháp. Ảnh gốc vẫn được giữ trong Git.';
+      display.append(p);
+      // Preserve a stable testable state marker, not a raw metadata block.
+      p.dataset.assetState='REMOVED IN DRAFT';
     } else if (s.url) {
       const img=document.createElement('img');
       img.src=s.url;img.alt=m.decorative?'':m.alt_text;
       img.decoding='async';img.className='ec-preview-image';
       display.append(img);
     } else if (rec.binaryRequired) {
-      const p=document.createElement('p');p.textContent='Chưa có binary sau khi tải lại. Chọn lại ảnh để preview / controlled upload.';display.append(p);
+      const p=document.createElement('p');p.className='ec-asset-empty';
+      p.textContent='Chưa có binary sau khi tải lại. Vui lòng chọn lại ảnh để xem trước và bàn giao.';
+      display.append(p);
     } else {
-      const p=document.createElement('p');p.textContent='Đã cập nhật metadata của visual slot; chưa thay file ảnh.';display.append(p);
+      const p=document.createElement('p');p.className='ec-asset-empty';
+      p.textContent='Đã cập nhật thông tin ảnh; chưa thay file ảnh.';
+      display.append(p);
     }
-    const details=document.createElement('p');
-    details.className='ec-asset-meta';
-    details.textContent=(m.file_name||'Không có file')+' · '+m.asset_type+' · '+m.representation_status+' · '+m.rights_status+' / '+m.provenance_status;
-    display.append(details);
-    for (const [labelText,value] of [['CAPTION',m.caption],['CREDIT',m.credit],['ALT',m.decorative?'DECORATIVE':m.alt_text]]) {
-      const p=document.createElement('p');p.className='ec-asset-meta';p.textContent=labelText+': '+(value||'—');display.append(p);
-    }
+    const summary=document.createElement('div');
+    summary.className='ec-asset-editorial-summary';
+    addLine(summary,'ec-asset-caption','Caption',m.caption||'Chưa có');
+    addLine(summary,'ec-asset-credit','Credit',m.credit||'Chưa có');
+    const status=document.createElement('div');
+    status.className='ec-asset-status';
+    status.textContent=readiness(rec,s.hold);
+    summary.append(status);
     if (rec.gate_reasons.length) {
-      const p=document.createElement('p');p.className='ec-warning';p.textContent='GATES: '+rec.gate_reasons.join(' · ');display.append(p);
+      const warning=document.createElement('div');
+      warning.className='ec-asset-warning';
+      warning.setAttribute('role','status');
+      const title=document.createElement('strong');
+      title.textContent='Ảnh này chưa đủ điều kiện xuất bản';
+      warning.append(title);
+      const list=document.createElement('ul');
+      [...new Set(rec.gate_reasons.map(humanGate))].forEach(reason=>{
+        const li=document.createElement('li');li.textContent=reason;list.append(li);
+      });
+      warning.append(list);
+      summary.append(warning);
     }
+    const compact=document.createElement('div');
+    compact.className='ec-asset-compact';
+    addLine(compact,'ec-asset-meta','Loại ảnh',typeLabels[m.asset_type]||'Loại ảnh cần kiểm tra');
+    addLine(compact,'ec-asset-meta','Alt',m.decorative?'Ảnh trang trí':m.alt_text.trim()?'Đã có':'Chưa có');
+    addLine(compact,'ec-asset-meta','Rights',rightsLabel(m.rights_status));
+    addLine(compact,'ec-asset-meta','Provenance',provenanceLabel(m.provenance_status));
+    summary.append(compact);
+    addTechnical(summary,rec,s);
+    display.append(summary);
   };
   const refresh = () => {
     const btn=toolbar.querySelector('[data-ec-action="asset"]');
@@ -200,7 +285,7 @@
     title.textContent='EDIT ASSET · '+slot.id;
     const body=panel.querySelector('#ec-panel-body');
     body.innerHTML='<p class="ec-warning">'+(slot.hold?'EVIDENCE-SENSITIVE / HOLD_FOR_RESEARCH — preview/proposal only.':'Asset draft — không tự cập nhật Git hoặc publish.')+'</p>'+
-      '<p class="ec-small">Stable slot ID: '+esc(slot.id)+' · Baseline: '+esc(slot.baseline.asset_id)+'</p>'+
+      '<details class="ec-asset-advanced ec-asset-panel-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre class="ec-asset-technical-data">'+esc(JSON.stringify({slot_id:slot.id,asset_id:m.asset_id,baseline_asset_id:slot.baseline.asset_id,file_name:m.file_name,version:m.version,rights_status:m.rights_status,provenance_status:m.provenance_status,representation_status:m.representation_status,evidence_impact:m.evidence_impact,gate_codes:slot.record?.gate_reasons||[],upload_manifest:slot.record?.upload_manifest||null,review_status:slot.record?.review_status||'BASELINE'},null,2))+'</pre></details>'+
       '<div class="ec-asset-input-actions"><label>UPLOAD / REPLACE IMAGE<input id="ec-asset-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><button type="button" id="ec-asset-remove">REMOVE IMAGE</button><button type="button" id="ec-asset-restore">RESTORE BASELINE IMAGE</button></div>'+
       '<label>Asset type<select id="ec-asset-type">'+optionHtml(types,m.asset_type)+'</select></label>'+
       '<label>Caption<textarea id="ec-asset-caption" rows="3">'+esc(m.caption)+'</textarea></label>'+
@@ -254,7 +339,7 @@
         slot.file=nextFile;slot.url=nextUrl;
       }
       render(slot);refresh();panel.hidden=true;active=null;
-      notify('Asset draft: '+slot.id+' · '+(slot.record?.gate_reasons.join(', ')||'baseline')+'. Không tự publish.');
+      notify(slot.record ? 'Đã lưu bản nháp ảnh. '+(slot.record.gate_reasons.length?'Ảnh chưa đủ điều kiện xuất bản.':'Đang chờ duyệt.') : 'Đã khôi phục ảnh gốc.');
     });
     q('ec-asset-file').focus();
   };
