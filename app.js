@@ -75,7 +75,7 @@ function activateTab(tab,{focus=false}={}){
 tabs.forEach((tab,i)=>{
   tab.addEventListener('click',()=>activateTab(tab));
   tab.addEventListener('keydown',e=>{
-    let ni=null;if(e.key==='ArrowRight')ni=(i+1)%tabs.length;else if(e.key==='ArrowLeft')ni=(i-1+tabs.length)%tabs.length;else if(e.key==='Home')ni=0;else if(e.key==='End')ni=tabs.length-1;
+    let ni=null;if(e.key==='ArrowRight')ni=(i+1)%tabs.length;else if(e.key==='ArrowLeft')ni=(i-1+tabs.length;else if(e.key==='Home')ni=0;else if(e.key==='End')ni=tabs.length-1;
     if(ni!==null){e.preventDefault();activateTab(tabs[ni],{focus:true});}
   });
 });
@@ -98,3 +98,46 @@ document.addEventListener('keydown',e=>{
     else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}
   }
 });
+
+/* F-EDITOR-UX-04 reader/public layer: reader view is intentionally free of editor codes. */
+(() => {
+  'use strict';
+  const params=new URLSearchParams(location.search);
+  const isPreview=params.get('preview')==='1';
+  const STORAGE='dkt:editorial-console:v0.4:editorial/round-2a-v0.1.5';
+  const footerBaseline={authors:'',sources:'',photos:'',graphics:'Tòa soạn',editor:'',series:'',newsroom:'',publish_date:'',updated_at:'',method:''};
+  let draft=null;
+  if(isPreview){try{const raw=localStorage.getItem(STORAGE);if(raw){const p=JSON.parse(raw);if(p.schema==='interactive-editorial-console/v0.4')draft=p.state||null;}}catch(e){draft=null;}}
+  const replacements=[
+    [/MỨC BẰNG CHỨNG 1\s*·?/gi,'DẤU TÍCH TRỰC TIẾP ·'],
+    [/MỨC BẰNG CHỨNG 2\s*·?/gi,'DỮ LIỆU KHẢO CỔ ·'],
+    [/MỨC BẰNG CHỨNG 3\s*·?/gi,'CHỨNG CỨ GIÁN TIẾP ·'],
+    [/MỨC BẰNG CHỨNG 4\s*[—-]?\s*/gi,'GIẢ THUYẾT SUY DỰNG — '],
+    [/MỨC BẰNG CHỨNG 5\s*·?/gi,'CHƯA XÁC ĐỊNH ·'],
+    [/MÔ HÌNH BIÊN TẬP VỀ MỨC BẰNG CHỨNG/gi,'CÁC LỚP ĐỘ CHẮC CHẮN CỦA THÔNG TIN'],
+    [/CHUỖI LẬP LUẬN BIÊN TẬP/gi,'CHUỖI LẬP LUẬN MINH HỌA']
+  ];
+  const cleanTextNode=node=>{if(node.nodeType!==Node.TEXT_NODE)return;let v=node.nodeValue;replacements.forEach(([r,to])=>{v=v.replace(r,to);});node.nodeValue=v;};
+  const cleanReaderCopy=root=>{
+    const walker=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);nodes.forEach(cleanTextNode);
+    const banner=document.querySelector('#evidence-tower .representation-banner');if(banner)banner.textContent='CÁC LỚP ĐỘ CHẮC CHẮN CỦA THÔNG TIN';
+    const eyebrow=document.querySelector('#tower-copy .eyebrow');if(eyebrow&&/MỨC BẰNG CHỨNG/i.test(eyebrow.textContent))eyebrow.textContent=eyebrow.textContent.replace(/MỨC BẰNG CHỨNG/i,'ĐỘ CHẮC CHẮN · LỚP');
+    const towerTitle=document.querySelector('#tower-copy h3');if(towerTitle)towerTitle.textContent=towerTitle.textContent.replace(/^Mức\s+(\d+)/i,'Lớp $1');
+  };
+  cleanReaderCopy(document.body);
+  const observer=new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE)cleanTextNode(n);else if(n.nodeType===Node.ELEMENT_NODE)cleanReaderCopy(n);})));observer.observe(document.body,{subtree:true,childList:true});
+
+  if(draft){
+    Object.values(draft.text||{}).forEach(r=>{if(r.previewOnly)return;try{const el=document.querySelector(r.path);if(el)el.textContent=r.after;}catch(e){}});
+    const pub=draft.publication||{};if(pub.title){document.title=pub.title;const h=document.querySelector('#s00 h1');if(h)h.textContent=pub.title;}if(pub.sapo){const d=document.querySelector('#s00 .dek');if(d)d.textContent=pub.sapo;}if(pub.masthead){const h=document.querySelector('.site-header strong');if(h)h.textContent=pub.masthead;}
+    const b03=draft.structured?.B03,plan=document.querySelector('#plan-visual');if(b03&&plan){[['project','project'],['foundation','foundation'],['hall','hall'],['court','court']].forEach(([k,c])=>{const el=plan.querySelector('.'+c+' span');if(el)el.textContent=b03[k];});const note=document.querySelector('#measure .plan-controls .small');if(note)note.textContent=b03.note;plan.setAttribute('aria-label',b03.aria||plan.getAttribute('aria-label'));}
+    const b01=draft.interactive?.B01;if(b01?.items){document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b01.items[i],card=document.querySelector('#hotspot-card');if(!x||!card)return;card.innerHTML='<h3>'+x.title+'</h3><p><strong>'+x.known_label+'</strong> '+x.known+'</p><p><strong>'+x.limit_label+'</strong> '+x.limit+'</p>'+(x.note?'<p class="small">'+x.note+'</p>':'');cleanReaderCopy(card);})));}
+    const b06=draft.interactive?.B06;if(b06?.items){b06.items.forEach(x=>{const btn=document.querySelector('#roof-case [data-reason="'+CSS.escape(x.key)+'"]');if(btn)btn.textContent=x.label;});document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b06.items.find(i=>i.key===btn.dataset.reason),box=document.querySelector('#reason-info');if(x&&box){box.innerHTML='<h3>'+x.title+'</h3><p>'+x.copy+'</p>';cleanReaderCopy(box);}})));}
+    const hero=draft.media?.HERO_MEDIA,cap=document.querySelector('#s00 figcaption');if(hero&&cap){if(hero.show_caption&&hero.caption){cap.hidden=false;cap.textContent=hero.caption+(hero.credit?' — '+hero.credit:'');}else if(hero.timestamp){cap.hidden=true;}}
+  }
+
+  const footer=document.querySelector('.site-footer .wrap');if(footer){const f=draft?.footer||footerBaseline;const rows=[['Tác giả / Nhóm tác giả',f.authors],['Nguồn tài liệu / tư liệu',f.sources],['Ảnh',f.photos],['Đồ họa / Thiết kế',f.graphics],['Biên tập',f.editor],['Dòng bài / Chuyên đề',f.series],['Giới thiệu tòa soạn',f.newsroom],['Ngày xuất bản',f.publish_date],['Ngày cập nhật',f.updated_at],['Ghi chú phương pháp',f.method]].filter(([,v])=>String(v||'').trim());footer.innerHTML=rows.map(([k,v])=>'<p><strong>'+k+':</strong> '+v+'</p>').join('');}
+
+  const share=draft?.share||{title:document.title,description:document.querySelector('meta[name="description"]')?.content||'',thumbnail:'',canonical:location.href.split('?')[0]};
+  const header=document.querySelector('.site-header .header-inner');if(header&&!header.querySelector('.reader-share')){const box=document.createElement('div');box.className='reader-share';box.innerHTML='<button type="button" data-share-native>Chia sẻ</button><button type="button" data-share-copy>Sao chép liên kết</button><span role="status" aria-live="polite"></span>';header.append(box);const status=box.querySelector('[role="status"]');box.querySelector('[data-share-native]').addEventListener('click',async()=>{const data={title:share.title||document.title,text:share.description||'',url:share.canonical||location.href.split('?')[0]};if(navigator.share){try{await navigator.share(data);status.textContent='Đã mở chia sẻ.';}catch(e){status.textContent='Đã hủy chia sẻ.';}}else{try{await navigator.clipboard.writeText(data.url);status.textContent='Đã sao chép liên kết.';}catch(e){status.textContent='Không thể sao chép tự động.';}}});box.querySelector('[data-share-copy]').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(share.canonical||location.href.split('?')[0]);status.textContent='Đã sao chép liên kết.';}catch(e){status.textContent='Không thể sao chép tự động.';}});const style=document.createElement('style');style.textContent='.reader-share{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}.reader-share button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:.25rem .55rem;font:600 .72rem system-ui,sans-serif;cursor:pointer}.reader-share span{font-size:.68rem;opacity:.8}@media(max-width:720px){.reader-share{width:100%}}';document.head.append(style);}
+})();
