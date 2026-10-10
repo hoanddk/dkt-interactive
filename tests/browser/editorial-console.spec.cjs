@@ -426,3 +426,106 @@ test('37 Caption and compact warning fit viewport after upload', async ({ page }
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+
+test('38 B01 hotspot click exposes the correct contextual asset editor and highlight', async ({ page }) => {
+  const hotspots=['them','rong','nen'];
+  for(let i=0;i<hotspots.length;i++){
+    const hotspot=page.locator('#remains [data-hotspot="'+hotspots[i]+'"]');
+    await hotspot.click();
+    await expect(hotspot).toHaveClass(/ec-hotspot-selected/);
+    const context=page.locator('#hotspot-card .ec-hotspot-context-action');
+    await expect(context).toHaveCount(1);
+    await expect(context).toContainText('ĐIỂM TƯƠNG TÁC '+(i+1));
+    await context.click();
+    await expect(page.locator('#ec-panel-title')).toHaveText('CHỈNH ẢNH — ĐIỂM TƯƠNG TÁC '+(i+1));
+    await expect(page.locator('#editor-panel .ec-asset-section')).toContainText('B01 — Dấu tích còn lại');
+    await expect(slot(page,'B01_HOTSPOT_0'+(i+1))).toHaveClass(/ec-hotspot-asset-selected/);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#editor-panel')).toBeHidden();
+  }
+});
+
+test('39 B01 hotspot asset slots save, reload and export independently', async ({ page }) => {
+  for(let i=1;i<=3;i++){
+    const id='B01_HOTSPOT_0'+i;
+    await openAsset(page,id);
+    await expect(page.locator('#ec-panel-title')).toContainText('ĐIỂM TƯƠNG TÁC '+i);
+    await saveAsset(page,{file:'hotspot-'+i+'.png',caption:'Ảnh riêng điểm '+i,credit:'Tác giả '+i,alt:'Mô tả điểm '+i,reason:'Kiểm tra slot '+i});
+  }
+  const records=await getAssets(page);
+  expect(records.filter(x=>x.slot_id.startsWith('B01_HOTSPOT_'))).toHaveLength(3);
+  expect(records.find(x=>x.slot_id==='B01_REMAINS_VISUAL')).toBeUndefined();
+  for(let i=1;i<=3;i++){
+    const id='B01_HOTSPOT_0'+i;
+    const rec=records.find(x=>x.slot_id===id);
+    expect(rec.new.caption).toBe('Ảnh riêng điểm '+i);
+    expect(rec.evidence_impact).toBe('EVIDENCE_SUPPORTING');
+    expect(rec.publish_eligible).toBe(false);
+  }
+  const data=await exported(page);
+  for(let i=1;i<=3;i++)expect(data.changes.some(x=>x.slot_id==='B01_HOTSPOT_0'+i)).toBe(true);
+  await action(page,'save').click();
+  await page.reload();
+  for(let i=1;i<=3;i++){
+    const id='B01_HOTSPOT_0'+i;
+    await expect(slot(page,id).locator('.ec-asset-caption')).toContainText('Ảnh riêng điểm '+i);
+    await openAsset(page,id);
+    await expect(page.locator('#ec-asset-caption')).toHaveValue('Ảnh riêng điểm '+i);
+    await page.locator('#ec-asset-cancel').click();
+  }
+});
+
+test('40 Asset editor uses Vietnamese labels and options without exposing raw codes by default', async ({ page }) => {
+  await openAsset(page,'B01_HOTSPOT_02');
+  const panel=page.locator('#ec-panel-body');
+  for(const label of ['Loại hình ảnh','Chú thích ảnh','Nguồn / Tác giả','Mô tả ảnh cho người dùng khiếm thị','Ảnh trang trí','Nguồn tư liệu / Bối cảnh','Quyền sử dụng','Nguồn gốc tư liệu','Nhãn hiển thị','Mức ảnh hưởng đến bằng chứng','Lý do thay đổi']){
+    await expect(panel.locator('label').filter({hasText:label}).first()).toBeVisible();
+  }
+  await expect(page.locator('#ec-asset-type option[value="EDITORIAL_GRAPHIC"]')).toHaveText('Đồ họa biên tập');
+  await expect(page.locator('#ec-asset-type option[value="PHOTO_CURRENT"]')).toHaveText('Ảnh hiện trạng');
+  await expect(page.locator('#ec-asset-type option[value="RECONSTRUCTION"]')).toHaveText('Hình phục dựng');
+  await expect(page.locator('#ec-asset-type option[value="SCHEMATIC"]')).toHaveText('Sơ đồ minh họa');
+  await expect(page.locator('#ec-asset-rights option[value="NOT_CHECKED"]')).toHaveText('Chưa kiểm tra');
+  await expect(page.locator('#ec-asset-provenance option[value="MISSING"]')).toHaveText('Thiếu thông tin');
+  await expect(page.locator('#ec-asset-impact option[value="PRESENTATION_ONLY"]')).toHaveText('Chỉ thay đổi trình bày');
+  await expect(page.locator('#ec-asset-impact option[value="EVIDENCE_SUPPORTING"]')).toHaveText('Hỗ trợ bằng chứng');
+  await expect(page.locator('#ec-asset-impact option[value="EVIDENCE_AFFECTING"]')).toHaveText('Có ảnh hưởng đến bằng chứng');
+  await expect(page.locator('#ec-asset-impact option[value="CLAIM_AFFECTING"]')).toHaveText('Có ảnh hưởng đến nhận định');
+  const visible=await panel.evaluate(el=>el.innerText);
+  expect(visible).not.toContain('BASELINE_PLACEHOLDER_B01_HOTSPOT_02');
+  expect(visible).not.toContain('NOT_CHECKED');
+  expect(visible).not.toContain('EVIDENCE_SUPPORTING');
+  const advanced=panel.locator('.ec-asset-panel-advanced');
+  await advanced.locator('summary').click();
+  await expect(advanced.locator('pre')).toContainText('B01_HOTSPOT_02');
+  await expect(advanced.locator('pre')).toContainText('NOT_CHECKED');
+});
+
+test('41 Hotspot minimum evidence impact remains enforced; public mode stays clean', async ({ page }) => {
+  await openAsset(page,'B01_HOTSPOT_03');
+  await saveAsset(page,{impact:'PRESENTATION_ONLY',caption:'Đề xuất ảnh điểm 3',reason:'QA evidence guard'});
+  const rec=(await getAssets(page)).find(x=>x.slot_id==='B01_HOTSPOT_03');
+  expect(rec.evidence_impact).toBe('EVIDENCE_SUPPORTING');
+  expect(rec.new.evidence_level).toBe('2');
+  expect(rec.publish_eligible).toBe(false);
+  await page.goto('/');
+  await expect(page.locator('.ec-hotspot-asset-group')).toHaveCount(0);
+  await expect(page.locator('.ec-hotspot-context-action')).toHaveCount(0);
+  await expect(page.locator('#remains [data-hotspot]')).toHaveCount(3);
+});
+
+test('42 B01 hotspot contextual edit action supports keyboard and mobile width', async ({ page }) => {
+  const hotspot=page.locator('#remains [data-hotspot="rong"]');
+  await hotspot.focus();
+  await page.keyboard.press('Enter');
+  const actionButton=page.locator('#hotspot-card .ec-hotspot-context-action');
+  await expect(actionButton).toBeVisible();
+  await actionButton.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#ec-panel-title')).toContainText('ĐIỂM TƯƠNG TÁC 2');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#editor-panel')).toBeHidden();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
