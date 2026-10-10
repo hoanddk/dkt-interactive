@@ -1,112 +1,181 @@
-# Interactive Editorial Console v0.1 — QA & controlled handoff
+# Interactive Editorial Console v0.1.4 — QA & newsroom usability handoff
 
-Scope: PILOT_LOCAL implementation, TOOLKIT_CANDIDATE. Source of truth remains the Git repository.
-Branch: editorial/round-2a-v0.1.5. No merge, deployment or Git write from browser.
+**Pilot:** Điện Kính Thiên  
+**Branch:** `editorial/round-2a-v0.1.5`  
+**Classification:** `PILOT_LOCAL FIX` / `TOOLKIT_CANDIDATE`  
+**Acceptance after implementation:** `READY_FOR_EDITORIAL_USABILITY_QA_ROUND_2` — **not** final editorial-use approval.
 
-## How to open (local checkout of the review branch)
+Source of truth remains Git. The browser editor cannot merge, publish, authenticate users or write to GitHub.
 
-1. Checkout the review branch and serve its root over HTTP, for example: python3 -m http.server 8000
-2. Public mode: http://localhost:8000/
-3. Edit mode: http://localhost:8000/?edit=1
-4. Controlled-mode simulation: http://localhost:8000/?edit=1&editorial_mode=controlled
-5. Post-publish-mode simulation: http://localhost:8000/?edit=1&editorial_mode=post_publish
+## Open locally
 
-Query parameters are **not authentication** and do not establish authoritative product or approval state.
-Do not publish the edit-mode URL as a credential-protected editorial system.
+1. Checkout `editorial/round-2a-v0.1.5`.
+2. Serve the repository root over HTTP, e.g. `python3 -m http.server 8000`.
+3. Reader view: `http://localhost:8000/`.
+4. Edit mode: `http://localhost:8000/?edit=1`.
+5. Saved-draft preview: use **XEM TRƯỚC** from the editor or open `/?preview=1` on the same origin/browser.
 
-## Manual browser QA required before READY_FOR_EDITORIAL_USE
+Query parameters are not authentication or approval state.
 
-- [ ] Public URL has no toolbar, edit styles, focusable editorial fields or local draft overlays.
-- [ ] Hero h1, dek, B01 plain-text paragraphs, B06 intro, B07 intro and B09 zone descriptions can be edited by click.
-- [ ] Click editable text, type, press Enter: immediate preview and changed marker.
-- [ ] Esc while typing cancels the current field edit.
-- [ ] SAVE DRAFT survives reload on the same browser/origin and shows saved state.
-- [ ] UNDO restores the previous revision; RESTORE BASELINE restores branch text and clears saved draft.
-- [ ] COMPARE displays before/after, section, field ID, timestamp, classification, review status and selective QC.
-- [ ] EXPORT CHANGES downloads parseable JSON with baselineId and no Git credentials.
-- [ ] B04 Evidence Tower text/logic remains locked; its original 5-level interaction still works.
-- [ ] B05 model tabs still switch; all B05 proposals stay HOLD_FOR_RESEARCH and do not replace page claims.
-- [ ] B08 legal status proposals stay HOLD_FOR_RESEARCH and do not replace page claims.
-- [ ] B09 foundation-count hold slot is proposal-only; no 36/60 resolution is inserted.
-- [ ] B03 measurement values and B07 owner/engineering status fields cannot be changed inline.
-- [ ] In CONTROLLED_EDIT, edits are PENDING_REVIEW with classification and selective QC.
-- [ ] In POST_PUBLISH_EDITABLE, EXPORT requires a reason per change and creates a POST_PUBLISH_UPDATE record.
-- [ ] Desktop viewport: 1440x900 and 1280x800. No console obstruction or focus loss.
-- [ ] Mobile viewport: 390x844 and 360x800. Toolbar wraps; panel scrolls and remains usable.
-- [ ] Keyboard: Tab reaches editable text and controls, Enter activates edit, Escape cancels/closes, panel focus cycles.
-- [ ] Existing hotspots, B02 layers, B03 plan toggles, B04 levels, B05 tabs, B06 reasoning chain, B08 verb ladder remain functional.
-- [ ] Check cross-browser (Chromium, Firefox, Safari if available); no console errors.
+## Gate 1 — Runtime QA Harness
 
-## Static source checks already performed
+Automated Chromium QA must pass on:
+- desktop 1440px;
+- mobile 390px;
+- mobile 375px.
 
-- Public index conditionally loads editor.js and editor.css only when edit=1.
-- No browser GitHub token or direct GitHub write is present in editor.js.
-- B04 locked, B05/B08 and foundation-count marked HOLD_FOR_RESEARCH.
-- Baseline-aware local draft, undo, restore, compare, export and selective-QC code exists.
-- app.js was not modified by Console implementation.
-- main branch is untouched.
+Required automated coverage:
 
-Static source checks do **not** constitute a passed browser QA.
+- [ ] Public mode has no Editorial Console controls.
+- [ ] Primary toolbar is Vietnamese: LƯU NHÁP / HOÀN TÁC / LÀM LẠI / LỊCH SỬ / THÔNG TIN XUẤT BẢN / XEM TRƯỚC / THOÁT BIÊN TẬP.
+- [ ] Restore/export live only under **CÔNG CỤ NÂNG CAO**.
+- [ ] Inline visible copy can be edited directly.
+- [ ] Save Draft survives reload.
+- [ ] Undo and Redo work for text.
+- [ ] `Ctrl/Cmd+Z` = Undo; `Shift+Ctrl/Cmd+Z` = Redo.
+- [ ] LỊCH SỬ shows newsroom-readable TRƯỚC / SAU; raw objects stay collapsed in CHI TIẾT KỸ THUẬT.
+- [ ] Export is a non-publishing JSON handoff with merge/publish false.
+- [ ] Restore baseline remains undoable.
+- [ ] Clean Exit does not create a false unsaved warning.
+- [ ] B04 remains LOCKED and its interaction still works.
+- [ ] B05 / B08 allow wording proposals only; HOLD state is unchanged.
+- [ ] B06 button labels and explanatory copy are editable while item keys/order/interaction remain locked.
+- [ ] B03 routes to **CHỈNH ĐỒ HỌA — B03** and defaults to structured field editing, not upload.
+- [ ] B03 structured field edits preserve plan controls.
+- [ ] B03 numerical edits are classified evidence-affecting.
+- [ ] `THAY TOÀN BỘ ĐỒ HỌA` is a separate secondary flow.
+- [ ] B01 hotspot 1 / 2 / 3 opens the matching item directly and highlights the selected hotspot.
+- [ ] B01 items remain independent; evidence level stays locked.
+- [ ] Each B01 item can open its own media editor.
+- [ ] Image/media editor has caption, author/source, source context and alt; no fake per-image Rights gate.
+- [ ] Optional caption renders nothing when disabled.
+- [ ] Media edits participate in Undo / Redo.
+- [ ] Video smoke test covers MP4/WebM selection, ratio, poster, autoplay/mute intent, loop and soft performance guidance.
+- [ ] Publication panel exposes masthead, section, title, sapo, authors, publish/update date-time and slug.
+- [ ] Optional footer fields disappear cleanly when empty.
+- [ ] Preview is reader mode and exposes compact share controls.
+- [ ] Reader view does not show internal HOLD/gate/slot/asset codes.
+- [ ] B01 / B03 / B05 / B06 / B08 reader interactions do not regress.
+- [ ] Panel Escape and focus-return work.
+- [ ] No document-level horizontal overflow.
+- [ ] No uncaught browser errors during core routing.
 
-## Change set handoff / selective QC
+**Gate result name:** `RUNTIME_QA_PASS`.
 
-The JSON export is a proposal, not an approval or Git patch. An external controlled apply step must:
-1. Verify repository, branch, source path, current Git commit and baselineId/field before-text.
-2. Reject changed selectors, changed baseline text or stale source revisions.
-3. Keep HOLD_FOR_RESEARCH proposals out of final content until source/claim verification.
-4. Apply allowed changes on a review branch only; create a Git commit and reviewer diff.
-5. Reopen selective QC gates from each record's impactQc.
-6. Obtain explicit merge/publish approval; create public update log for post-publish changes.
+Automated browser success alone does **not** close F-EDITOR-UX-04.
 
-## Known v0.1 limitations
+## Gate 2 — Real-editor usability walkthrough
 
-- No CMS, identity/role enforcement, server sync, multi-device draft sync or automatic Git apply.
-- Plain-text leaf nodes are inline-editable. Rich-text elements with nested markup outside HOLD areas are locked in v0.1.
-- Dynamic JS-generated reader-facing text is not inline-editable; this avoids accidental interaction/evidence-state changes.
-- Browser localStorage is draft convenience, not durable version history or source of truth.
-- Query-parameter editorial modes are UI/workflow simulations until backed by approved release metadata.
-- No hosted review-branch preview is provisioned by this change; local checkout or controlled preview deployment is required.
-- Asset replacement is classification-ready in the JSON schema, not a functional asset uploader.
+After Runtime QA passes, a newsroom user reopens `/?edit=1` and performs a live walkthrough.
 
+Review questions:
 
-## v0.1 revision — TEXT + IMAGE editing (Master Control handoff)
+- [ ] Without documentation, can the editor understand what each primary toolbar action does?
+- [ ] Does the user naturally click visible copy to edit it?
+- [ ] Is the difference between reader view and editorial overlay obvious?
+- [ ] Can the user undo and redo without fear of losing work?
+- [ ] Is LỊCH SỬ useful without exposing JSON/IDs?
+- [ ] Does B01 clearly map hotspot 1/2/3 to item 1/2/3?
+- [ ] Does B03 clearly communicate “edit graphic content” vs “replace whole graphic”?
+- [ ] Can B06 wording change without suggesting that interaction logic changed?
+- [ ] Are B05/B08 HOLD proposals understandable as proposals, not approvals?
+- [ ] Are media caption/source controls concise enough for normal newsroom use?
+- [ ] Does the video flow give useful guidance without hard-blocking ordinary files?
+- [ ] Is THÔNG TIN XUẤT BẢN understandable and are optional fields unobtrusive?
+- [ ] Does the footer contain only real supplied values?
+- [ ] Does XEM TRƯỚC feel like the article readers would actually see?
+- [ ] On 390px / 375px, is the editor usable without excessive scrolling/confusion?
 
-The Console is now an EDITORIAL CONTENT EDITOR. asset-editor.js is loaded only with ?edit=1, after editor.js. Visual slots are stable IDs defined in the editor extension. No reader-facing public markup was changed to add editor slots. B04 has no editable asset slot.
+**Gate result name while pending:** `EDITORIAL_USABILITY_QA_PENDING_USER_WALKTHROUGH`.
 
-### Asset slots and baseline behavior
+## Field-level edit policy
 
-HERO_IMAGE; B01_REMAINS_VISUAL; B03_PLAN_VISUAL; B05_MODEL_A; B05_MODEL_B; B05_MODEL_C; B06_ROOF_VISUAL; B07_PRESERVATION_SCHEMATIC; B08_LEGAL_VISUAL; B09_CLOSURE_VISUAL.
+The console distinguishes editorial layers rather than locking whole components indiscriminately:
 
-Existing figures/interactive graphics are preserved. Editor-only visual preview blocks are added inside the corresponding section. Slots with no existing image use editor-only virtual placeholders. These are proposals, not final image references. The B01 hotspots, B03 measurement diagram and B05 tabs must remain operable.
+| Layer | Default behavior |
+|---|---|
+| `STRUCTURE` | LOCKED unless a component-specific editor exists |
+| `INTERACTION_LOGIC` | LOCKED |
+| `DISPLAY_COPY` | EDITABLE by default |
+| `DATA` | EDITABLE or REVIEW_REQUIRED depending on evidence impact |
+| `EVIDENCE_STATUS` | LOCKED / HOLD_FOR_RESEARCH |
+| `ASSET/MEDIA` | Editable through media flow |
+| `STYLE` | Not opened broadly in this Pilot |
 
-### Additional browser QA required
+Core rule: **lock the logic, not the language**.
 
-- [ ] Edit Mode shows EDIT ASSET button in toolbar and per-slot buttons; public mode shows none.
-- [ ] Hero: upload JPEG, PNG, WebP or AVIF (max 15 MB), preview within hero frame without forced crop, show draft status, filename, type, caption, credit, alt.
-- [ ] B01: image preview must not disable three hotspot buttons or change their Level 1/2 claims.
-- [ ] B03: plan buttons continue to work; visual proposal does not overwrite measured geometry.
-- [ ] B05: A/B/C tabs remain usable; each model slot has HOLD badge and draft-only preview; claim status unchanged.
-- [ ] B06: reconstruction requires RECONSTRUCTION_HYPOTHESIS; cannot downgrade below EVIDENCE_AFFECTING.
-- [ ] B08: visual proposal must remain HOLD_FOR_RESEARCH and cannot downgrade CLAIM_AFFECTING impact.
-- [ ] B04: no asset edit control; Evidence Tower stays structurally locked.
-- [ ] Upload / Replace / Remove / Restore baseline image, then Undo each change.
-- [ ] Metadata editing: caption, credit, alt, source, asset type, representation, rights, provenance, evidence impact and reason.
-- [ ] Rights NOT_CHECKED/UNKNOWN/RESTRICTED or provenance MISSING/PARTIAL remain non-final; PLACEHOLDER remains non-final.
-- [ ] Missing alt for non-decorative image, duplicate caption/alt, archival missing source/context and reconstruction without uncertainty label are flagged.
-- [ ] SAVE DRAFT persists metadata across reload, but binary preview does NOT persist; UI shows reselect/upload warning.
-- [ ] COMPARE includes text and image records; EXPORT JSON includes both, asset upload manifest and selective QC.
-- [ ] Exported image binary is NOT embedded in JSON; controlled upload required before Git apply.
-- [ ] In post-publish mode, image updates have POST_PUBLISH_ASSET_UPDATE and reason is required.
-- [ ] Keyboard Tab/Enter/Escape, focus trapping in asset panel and mobile file-picker / metadata controls.
-- [ ] Responsive: 1440x900, 1280x800, 390x844, 360x800; contain preview, caption wrapping, no overflow.
-- [ ] Browser console has no uncaught exceptions; no Git credentials or Git API calls.
-- [ ] Verify text Save/Undo/Restore/Compare/Export still work after an asset change.
+### B04
+- Evidence logic and structure remain locked.
+- No F-EDITOR-UX-04 path may change its evidence state.
 
-### Additional limitations and gating
+### B05 / B08
+- Remain `HOLD_FOR_RESEARCH` internally.
+- Heading/explanatory/caption wording can be saved as proposals.
+- Proposal copy must not remove HOLD, change legal/approval state or upgrade certainty.
 
-- No image file is persisted across reload. localStorage contains metadata and an upload manifest only.
-- No automatic asset apply, rights verification, provenance validation, image optimization, DAM, crop tool or Git commit.
-- A change set is a proposal, never a publishable asset or approval. publish_eligible is always false pending controlled Git upload and reviewer gates.
-- Baseline images in the prototype are mostly CSS illustrations or schematic elements, not standalone file assets. Replacement previews are editor-only overlays; controlled apply must update the actual HTML/CSS/JS reference.
-- The browser cannot verify legal rights or provenance claims typed by editors. Reviewer verification is mandatory.
-- Browser interaction QA remains PENDING until performed on a locally served review branch.
+### 36/60
+- Remains unresolved and outside this UX task.
+- No usability control may convert the conflict into a final claim.
+
+## Visual-type routing
+
+The editor no longer assumes every visual is a file image.
+
+- **IMAGE / MEDIA:** upload or replace image/video, optional caption, author/source, context and alt.
+- **STRUCTURED_GRAPHIC:** edit internal text/data while preserving layout/interaction; replacing the whole graphic is a separate action.
+- **INTERACTIVE_COMPONENT:** edit identified items/states rather than a single ambiguous asset.
+
+Pilot examples:
+- B03 = structured graphic.
+- B01 = interactive component with three items.
+- B06 = interactive reasoning chain with editable display copy and locked interaction keys/order.
+
+## Media policy
+
+The browser may accept image and basic video drafts. It provides soft warnings for measurable properties such as file size, resolution, missing poster and autoplay. Guidance prefers common 1080p H.264 MP4 where appropriate, poster images, lazy/offscreen loading and restrained autoplay.
+
+There is **no per-file Rights status publish gate**. The system cannot verify real-world permission. Rights/legal clearance remains a newsroom policy and human responsibility outside the fake browser gate model.
+
+Media file bytes are session-only in this Pilot. LocalStorage persists the draft metadata; a changed binary must be reselected after reload.
+
+## Publication, footer and sharing
+
+`THÔNG TIN XUẤT BẢN` contains article metadata, optional production credits, data-driven footer fields and share metadata. Empty optional footer fields render nothing in reader preview.
+
+Reader sharing is intentionally compact:
+- native device share when available;
+- copy link fallback.
+
+Facebook/Zalo/email shortcuts are not required for Pilot acceptance.
+
+## Static/source audit expectations
+
+- No Git token or Git write in browser code.
+- `asset-editor.js` is now a compatibility shim; integrated editing lives in `editor.js`.
+- Internal technical codes are allowed only in collapsed technical details/export/debug data, not normal user chrome.
+- Reader mode must not render editor controls.
+- Public interaction code must continue to work when editor code is absent.
+- `main` is not merged or deployed by this task.
+
+## Known Pilot limitations
+
+- No CMS/backend, durable revision database, user roles or multi-user editing.
+- No automatic Git apply/merge/publish.
+- Media binaries are not persisted in localStorage.
+- Preview is same-origin browser draft preview, not a hosted approval environment.
+- Rich arbitrary HTML editing remains intentionally constrained.
+- Video metadata depends on browser decoding of the selected file; invalid test fixtures may have no duration/resolution.
+- Share thumbnail/canonical metadata is editable but no social-platform preview validator is bundled.
+- Reader source HTML may still contain editorial provenance wording that runtime JS presents in a reader-safe form; source-content normalization should be handled in the controlled apply/content lane, not by silently resolving research claims here.
+
+## Final state for this remediation
+
+When Gate 1 passes but Gate 2 has not yet been performed:
+
+`F-EDITOR-UX-04`  
+`REMEDIATION_IMPLEMENTED`  
+`RUNTIME_QA_PASS`  
+`EDITORIAL_USABILITY_QA_PENDING_USER_WALKTHROUGH`  
+`READY_FOR_EDITORIAL_USABILITY_QA_ROUND_2`
+
+Do **not** label `READY_FOR_EDITORIAL_USE_FINAL` until the second live newsroom walkthrough is explicitly accepted.
