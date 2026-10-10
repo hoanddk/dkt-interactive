@@ -1,532 +1,414 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs/promises');
 
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aFqkAAAAASUVORK5CYII=',
-  'base64'
-);
-const editURL = '/?edit=1';
-const action = (page, name) => page.locator('#editor-console [data-ec-action="' + name + '"]');
-const slot = (page, id) => page.locator('[data-editorial-slot="' + id + '"]');
-const assetButton = (page, id) => slot(page, id).locator('.ec-asset-control');
-const getAssets = page => page.evaluate(() => window.__editorialAssets?.getChanges() || []);
-const file = name => ({ name, mimeType: 'image/png', buffer: PNG });
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aFqkAAAAASUVORK5CYII=','base64');
+const action = (page,name) => page.locator('#editor-console [data-ec-action="'+name+'"]');
+const file = (name,mimeType='image/png',buffer=PNG) => ({name,mimeType,buffer});
 
-async function editText(page, text) {
-  const field = page.locator('#s00 h1[data-editorial-policy="EDITABLE"]');
-  await field.click();
-  await expect(field).toHaveAttribute('contenteditable', 'plaintext-only');
-  await field.fill(text);
-  await field.press('Enter');
-  await expect(field).toHaveText(text);
-  return field;
+async function cleanEdit(page){
+  await page.goto('/');
+  await page.evaluate(()=>localStorage.clear());
+  await page.goto('/?edit=1');
+  await expect(page.locator('#editor-console')).toBeVisible();
+  await expect(page.locator('#editor-console')).toContainText('BẢNG BIÊN TẬP INTERACTIVE');
 }
-async function openAsset(page, id) {
-  await assetButton(page, id).click();
+async function editHeroTitle(page,text){
+  const h1=page.locator('#s00 h1[data-editorial-policy="EDITABLE"]');
+  await h1.click();
+  await expect(h1).toHaveAttribute('contenteditable','plaintext-only');
+  await h1.fill(text);
+  await h1.press('Enter');
+  await expect(h1).toHaveText(text);
+  return h1;
+}
+async function openPublication(page){
+  await action(page,'publication').click();
   await expect(page.locator('#editor-panel')).toBeVisible();
-  await expect(page.locator('#ec-panel-title')).toContainText(/CHỈNH (SỬA )?ẢNH/);
+  await expect(page.locator('#ec-panel-title')).toHaveText('THÔNG TIN XUẤT BẢN');
 }
-async function saveAsset(page, fields = {}) {
-  if (fields.file) await page.locator('#ec-asset-file').setInputFiles(file(fields.file));
-  if (fields.caption !== undefined) await page.locator('#ec-asset-caption').fill(fields.caption);
-  if (fields.credit !== undefined) await page.locator('#ec-asset-credit').fill(fields.credit);
-  if (fields.alt !== undefined) await page.locator('#ec-asset-alt').fill(fields.alt);
-  if (fields.source !== undefined) await page.locator('#ec-asset-source').fill(fields.source);
-  if (fields.reason !== undefined) await page.locator('#ec-asset-reason').fill(fields.reason);
-  if (fields.rights !== undefined) await page.locator('#ec-asset-rights').selectOption(fields.rights);
-  if (fields.provenance !== undefined) await page.locator('#ec-asset-provenance').selectOption(fields.provenance);
-  if (fields.impact !== undefined) await page.locator('#ec-asset-impact').selectOption(fields.impact);
-  if (fields.type !== undefined) await page.locator('#ec-asset-type').selectOption(fields.type);
-  if (fields.representation !== undefined) await page.locator('#ec-asset-representation').selectOption(fields.representation);
-  await page.locator('#ec-asset-save').click();
+async function savePublication(page){
+  await page.locator('#ec-publication-save').click();
   await expect(page.locator('#editor-panel')).toBeHidden();
 }
-async function exported(page) {
-  const pending = page.waitForEvent('download');
-  await action(page, 'export').click();
-  const download = await pending;
-  const raw = await fs.readFile(await download.path(), 'utf8');
-  return JSON.parse(raw);
+async function openHeroMedia(page){
+  await page.getByRole('button',{name:'CHỈNH MEDIA'}).first().click();
+  await expect(page.locator('#editor-panel')).toBeVisible();
+  await expect(page.locator('#ec-panel-title')).toContainText('HERO');
+}
+async function exportPayload(page){
+  const details=page.locator('#editor-console .ec-tools');
+  if(!(await details.getAttribute('open'))) await details.locator('summary').click();
+  const pending=page.waitForEvent('download');
+  await action(page,'export').click();
+  const dl=await pending;
+  return JSON.parse(await fs.readFile(await dl.path(),'utf8'));
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.goto(editURL);
-  await expect(page.locator('#editor-console')).toBeVisible();
-  await expect(page.locator('[data-editorial-slot="HERO_IMAGE"] .ec-asset-control')).toBeVisible();
-});
+test.beforeEach(async ({page})=>{ await cleanEdit(page); });
 
-test('01 public mode excludes editorial controls and draft overlays', async ({ page }) => {
+test('01 public mode has no Editorial Console', async ({page})=>{
   await page.goto('/');
   await expect(page.locator('#editor-console')).toHaveCount(0);
-  await expect(page.locator('.ec-asset-control')).toHaveCount(0);
-  await expect(page.locator('#s00 h1')).toBeVisible();
+  await expect(page.locator('#editor-panel')).toHaveCount(0);
+  await expect(page.locator('.ec-visual-control')).toHaveCount(0);
 });
 
-test('02 inline text editing commits on Enter', async ({ page }) => {
-  await editText(page, 'QA EDIT TEST — không phải nội dung xuất bản');
-  await expect(page.locator('#s00 h1')).toHaveClass(/ec-changed/);
-  await expect(page.locator('#ec-count')).toContainText('1 changes');
+test('02 primary toolbar is Vietnamese and simple', async ({page})=>{
+  const bar=page.locator('#editor-console');
+  for(const label of ['LƯU NHÁP','HOÀN TÁC','LÀM LẠI','LỊCH SỬ','THÔNG TIN XUẤT BẢN','XEM TRƯỚC','THOÁT BIÊN TẬP']) await expect(bar).toContainText(label);
+  await expect(bar.locator('.ec-actions')).not.toContainText('EXPORT CHANGES');
+  await expect(bar.locator('.ec-actions')).not.toContainText('EDIT ASSET');
+  await expect(bar.locator('.ec-actions')).not.toContainText('RESTORE BASELINE');
+  await expect(bar).toContainText('ĐANG BIÊN TẬP');
+  await expect(bar).toContainText('HOÀN THIỆN BIÊN TẬP');
 });
 
-test('03 Escape cancels active inline text edit', async ({ page }) => {
-  const h1 = page.locator('#s00 h1');
-  const before = await h1.textContent();
-  await h1.click();
-  await h1.fill('QA CANCELED');
-  await h1.press('Escape');
-  await expect(h1).toHaveText(before);
-  await expect(h1).not.toHaveAttribute('contenteditable', /.+/);
+test('03 advanced tools contain restore and technical export', async ({page})=>{
+  const tools=page.locator('#editor-console .ec-tools');
+  await expect(tools.locator('summary')).toHaveText('CÔNG CỤ NÂNG CAO');
+  await tools.locator('summary').click();
+  await expect(action(page,'restore')).toHaveText('KHÔI PHỤC BẢN GỐC');
+  await expect(action(page,'export')).toHaveText('XUẤT GÓI THAY ĐỔI');
 });
 
-test('04 Undo restores original text', async ({ page }) => {
-  const before = await page.locator('#s00 h1').textContent();
-  await editText(page, 'QA UNDO');
-  await action(page, 'undo').click();
-  await expect(page.locator('#s00 h1')).toHaveText(before);
+test('04 inline visible copy edits directly', async ({page})=>{
+  await editHeroTitle(page,'QA — tiêu đề đang biên tập');
+  await expect(page.locator('#ec-count')).toContainText('thay đổi');
 });
 
-test('05 Restore Baseline clears text and draft storage', async ({ page }) => {
-  const before = await page.locator('#s00 h1').textContent();
-  await editText(page, 'QA RESTORE');
-  await action(page, 'save').click();
-  page.once('dialog', d => d.accept());
-  await action(page, 'restore').click();
-  await expect(page.locator('#s00 h1')).toHaveText(before);
-  const draft = await page.evaluate(() => localStorage.getItem('dkt:editorial-console:v0.1:editorial/round-2a-v0.1.5'));
-  expect(draft).toBeNull();
+test('05 Save Draft survives reload', async ({page})=>{
+  await editHeroTitle(page,'QA — tiêu đề đã lưu');
+  await action(page,'save').click();
+  await page.reload();
+  await expect(page.locator('#s00 h1')).toHaveText('QA — tiêu đề đã lưu');
+  await expect(page.locator('#ec-count')).toContainText('đã lưu');
 });
 
-test('06 Compare shows before, after, classification and QC', async ({ page }) => {
-  await editText(page, 'QA COMPARE');
-  await action(page, 'compare').click();
-  const panel = page.locator('#editor-panel');
-  await expect(panel).toBeVisible();
-  await expect(panel.locator('.ec-before')).toContainText('BEFORE');
-  await expect(panel.locator('.ec-after')).toContainText('QA COMPARE');
-  await expect(panel.locator('[data-ec-kind]')).toHaveValue('COPY_ONLY');
-  await expect(panel).toContainText('EDITORIAL_DIFF');
+test('06 Undo and Redo work for text edits', async ({page})=>{
+  const original=await page.locator('#s00 h1').textContent();
+  await editHeroTitle(page,'QA — hoàn tác/làm lại');
+  await action(page,'undo').click();
+  await expect(page.locator('#s00 h1')).toHaveText(original);
+  await action(page,'redo').click();
+  await expect(page.locator('#s00 h1')).toHaveText('QA — hoàn tác/làm lại');
 });
 
-test('07 Export downloads parseable changeset with source and text diff', async ({ page }) => {
-  await editText(page, 'QA EXPORT');
-  const data = await exported(page);
-  expect(data.schema).toBe('interactive-editorial-changeset/v0.1');
+test('07 keyboard Ctrl+Z and Ctrl+Shift+Z work', async ({page})=>{
+  const original=await page.locator('#s00 h1').textContent();
+  await editHeroTitle(page,'QA — keyboard undo');
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('#s00 h1')).toHaveText(original);
+  await page.keyboard.press('Control+Shift+z');
+  await expect(page.locator('#s00 h1')).toHaveText('QA — keyboard undo');
+});
+
+test('08 History is readable and technical details collapsed', async ({page})=>{
+  const original=await page.locator('#s00 h1').textContent();
+  await editHeroTitle(page,'QA — lịch sử dễ đọc');
+  await action(page,'history').click();
+  const p=page.locator('#editor-panel');
+  await expect(p).toContainText('LỊCH SỬ CHỈNH SỬA');
+  await expect(p).toContainText('TRƯỚC');
+  await expect(p).toContainText('SAU');
+  await expect(p).toContainText(original);
+  await expect(p).toContainText('QA — lịch sử dễ đọc');
+  await expect(p.locator('.ec-asset-advanced pre').first()).toBeHidden();
+});
+
+test('09 Export stays advanced and downloads a non-publishing changeset', async ({page})=>{
+  await editHeroTitle(page,'QA — export');
+  const data=await exportPayload(page);
+  expect(data.schema).toBe('interactive-editorial-changeset/v0.4');
   expect(data.source.branch).toBe('editorial/round-2a-v0.1.5');
-  expect(data.source.repository).toBe('hoanddk/dkt-interactive');
-  expect(data.changes.some(c => c.after === 'QA EXPORT' && c.before && c.timestamp)).toBe(true);
+  expect(data.review.mergeAllowed).toBe(false);
   expect(data.review.publishAllowed).toBe(false);
 });
 
-test('08 Save Draft survives reload and remains preview only', async ({ page }) => {
-  await editText(page, 'QA PERSISTED DRAFT');
-  await action(page, 'save').click();
-  await page.reload();
-  await expect(page.locator('#s00 h1')).toHaveText('QA PERSISTED DRAFT');
-  await expect(page.locator('#ec-count')).toContainText('saved');
+test('10 Restore baseline keeps an undo path', async ({page})=>{
+  const original=await page.locator('#s00 h1').textContent();
+  await editHeroTitle(page,'QA — restore');
+  await page.locator('#editor-console .ec-tools summary').click();
+  page.once('dialog',d=>d.accept());
+  await action(page,'restore').click();
+  await expect(page.locator('#s00 h1')).toHaveText(original);
+  await action(page,'undo').click();
+  await expect(page.locator('#s00 h1')).toHaveText('QA — restore');
 });
 
-test('09 Exit Edit Mode returns to public page without controls', async ({ page }) => {
-  await action(page, 'exit').click();
+test('11 clean Exit Edit Mode removes edit query without false warning', async ({page})=>{
+  await action(page,'exit').click();
   await expect(page).not.toHaveURL(/edit=1/);
   await expect(page.locator('#editor-console')).toHaveCount(0);
-  await expect(page.locator('.ec-asset-control')).toHaveCount(0);
 });
 
-test('10 Hero upload previews file, alt, caption and credit', async ({ page }) => {
-  await openAsset(page, 'HERO_IMAGE');
-  await saveAsset(page, { file:'hero-qa.png',caption:'QA caption',credit:'QA credit',alt:'QA alt',source:'QA fixture',reason:'QA upload' });
-  const s = slot(page, 'HERO_IMAGE');
-  await expect(s.locator('.ec-preview-image')).toBeVisible();
-  await expect(s.locator('.ec-preview-image')).toHaveAttribute('alt','QA alt');
-  await expect(s.locator('.ec-asset-display')).toContainText('QA caption');
-  await expect(s.locator('.ec-asset-display')).toContainText('QA credit');
-  expect((await getAssets(page)).find(r=>r.slot_id==='HERO_IMAGE').type).toBe('IMAGE_REPLACE');
+test('12 B04 remains structurally locked while interaction works', async ({page})=>{
+  await expect(page.locator('#evidence-tower [data-editorial-policy="EDITABLE"]')).toHaveCount(0);
+  const h2=page.locator('#evidence-tower h2');
+  await expect(h2).toHaveAttribute('data-editorial-policy','LOCKED');
+  await page.locator('#evidence-tower [data-level-control="4"]').click();
+  await expect(page.locator('#tower-copy h3')).toContainText('Lớp 4');
 });
 
-test('11 Replace image updates upload manifest', async ({ page }) => {
-  await openAsset(page, 'HERO_IMAGE');
-  await saveAsset(page, {file:'first-qa.png',alt:'first',reason:'QA first'});
-  await openAsset(page, 'HERO_IMAGE');
-  await saveAsset(page, {file:'second-qa.png',alt:'second',reason:'QA replace'});
-  const rec = (await getAssets(page)).find(r=>r.slot_id==='HERO_IMAGE');
-  expect(rec.upload_manifest.file_name).toBe('second-qa.png');
-  await expect(slot(page,'HERO_IMAGE').locator('.ec-preview-image')).toHaveAttribute('alt','second');
+test('13 B05 allows wording proposal but retains HOLD state', async ({page})=>{
+  const h2=page.locator('#models h2');
+  const original=await h2.textContent();
+  await expect(h2).toHaveAttribute('data-editorial-policy','HOLD_FOR_RESEARCH');
+  await h2.click();
+  await expect(page.locator('#editor-panel')).toContainText('CHỜ BỔ SUNG NGHIÊN CỨU');
+  await page.locator('#ec-proposed').fill('QA — đề xuất câu chữ B05');
+  await page.locator('#ec-proposed-save').click();
+  await expect(h2).toHaveText(original);
+  const record=await page.evaluate(()=>Object.values(window.__editorialConsoleV04.state.text).find(x=>x.section==='B05'));
+  expect(record.previewOnly).toBe(true);
+  expect(record.policy).toBe('HOLD_FOR_RESEARCH');
 });
 
-test('12 Remove image marks draft, Restore Baseline removes visual draft', async ({ page }) => {
-  await openAsset(page, 'HERO_IMAGE');
-  await saveAsset(page, {file:'remove-qa.png',alt:'removable',reason:'QA remove'});
-  await openAsset(page, 'HERO_IMAGE');
-  await page.locator('#ec-asset-remove').click();
-  await page.locator('#ec-asset-save').click();
-  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-empty')).toContainText('Ảnh đã được gỡ trong bản nháp');
-  await openAsset(page, 'HERO_IMAGE');
-  await page.locator('#ec-asset-restore').click();
-  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-display')).toBeHidden();
-  expect((await getAssets(page)).some(r=>r.slot_id==='HERO_IMAGE')).toBe(false);
+test('14 B08 allows wording proposal without changing research hold', async ({page})=>{
+  const h2=page.locator('#control-gates h2');
+  await expect(h2).toHaveAttribute('data-editorial-policy','HOLD_FOR_RESEARCH');
+  await h2.click();
+  await page.locator('#ec-proposed').fill('QA — đề xuất câu chữ B08');
+  await page.locator('#ec-proposed-save').click();
+  const record=await page.evaluate(()=>Object.values(window.__editorialConsoleV04.state.text).find(x=>x.section==='B08'));
+  expect(record.previewOnly).toBe(true);
+  expect(record.policy).toBe('HOLD_FOR_RESEARCH');
 });
 
-test('13 Asset Undo reverts most recent visual edit', async ({ page }) => {
-  await openAsset(page, 'HERO_IMAGE');
-  await saveAsset(page, {file:'undo-qa.png',alt:'QA undo',reason:'QA undo'});
+test('15 B06 normal click keeps interaction; double click opens wording editor', async ({page})=>{
+  const btn=page.locator('#roof-case [data-reason="wood"]');
+  await btn.click();
+  await expect(page.locator('#reason-info h3')).toContainText('Cấu kiện gỗ');
+  await btn.dblclick();
+  await expect(page.locator('#ec-panel-title')).toHaveText('CHỈNH NỘI DUNG TƯƠNG TÁC — B06');
+  await expect(page.locator('#b06-label')).toBeVisible();
+});
+
+test('16 B06 tab labels are editable but item key/order remain locked', async ({page})=>{
+  const btn=page.locator('#roof-case [data-reason="tile"]');
+  await btn.dblclick();
+  await page.locator('#b06-label').fill('1 · Ngói khảo cổ');
+  await page.locator('#b06-save').click();
+  await expect(btn).toHaveText('1 · Ngói khảo cổ');
+  const item=await page.evaluate(()=>window.__editorialConsoleV04.state.interactive.B06.items[0]);
+  expect(item.key).toBe('tile');
   await action(page,'undo').click();
-  expect((await getAssets(page)).some(r=>r.slot_id==='HERO_IMAGE')).toBe(false);
+  await expect(btn).toContainText('Ngói thật');
+  await action(page,'redo').click();
+  await expect(btn).toHaveText('1 · Ngói khảo cổ');
 });
 
-test('14 Metadata round-trip across Save Draft and reload', async ({ page }) => {
-  await openAsset(page, 'HERO_IMAGE');
-  await saveAsset(page, {file:'metadata-qa.png',caption:'QA caption retained',credit:'QA credit retained',alt:'QA alt retained',source:'QA source retained',rights:'CLEARED',provenance:'COMPLETE',reason:'QA metadata'});
-  await action(page,'save').click();
-  await page.reload();
-  await openAsset(page,'HERO_IMAGE');
-  await expect(page.locator('#ec-asset-caption')).toHaveValue('QA caption retained');
-  await expect(page.locator('#ec-asset-credit')).toHaveValue('QA credit retained');
-  await expect(page.locator('#ec-asset-alt')).toHaveValue('QA alt retained');
-  await expect(page.locator('#ec-asset-source')).toHaveValue('QA source retained');
-  await expect(page.locator('#ec-asset-rights')).toHaveValue('CLEARED');
-  await expect(page.locator('#ec-asset-provenance')).toHaveValue('COMPLETE');
-  await page.locator('#ec-asset-cancel').click();
-  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-display')).toContainText('Tệp ảnh chưa được lưu sau khi tải lại');
+test('17 B03 routes to structured graphic editor by default', async ({page})=>{
+  await page.getByRole('button',{name:'CHỈNH NỘI DUNG ĐỒ HỌA'}).click();
+  await expect(page.locator('#ec-panel-title')).toHaveText('CHỈNH ĐỒ HỌA — B03');
+  await expect(page.locator('#editor-panel')).toContainText('ĐỒ HỌA CÓ CẤU TRÚC');
+  await expect(page.locator('#b03-project')).toBeVisible();
+  await expect(page.locator('#ec-media-file')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'THAY TOÀN BỘ ĐỒ HỌA'})).toBeVisible();
 });
 
-test('15 Unified Export contains image upload manifest and text change', async ({ page }) => {
-  await editText(page,'QA MIXED EXPORT');
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{file:'manifest-qa.png',alt:'manifest',reason:'QA export'});
-  const data = await exported(page);
-  expect(data.changes.some(c=>c.after==='QA MIXED EXPORT')).toBe(true);
-  expect(data.changes.some(c=>c.slot_id==='HERO_IMAGE')).toBe(true);
-  expect(data.assetUploadManifest.some(x=>x.slot_id==='HERO_IMAGE'&&x.file_name==='manifest-qa.png')).toBe(true);
-  expect(data.review.publishAllowed).toBe(false);
+test('18 B03 field edit preserves plan interaction', async ({page})=>{
+  await page.getByRole('button',{name:'CHỈNH NỘI DUNG ĐỒ HỌA'}).click();
+  await page.locator('#b03-project').fill('PHẠM VI DỰ ÁN ≈ 10.700 m²');
+  await page.locator('#b03-save').click();
+  await expect(page.locator('#plan-visual .project span')).toHaveText('PHẠM VI DỰ ÁN ≈ 10.700 m²');
+  const toggle=page.locator('#measure [data-plan="project"]');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed','true');
 });
 
-test('16 B04 Evidence Tower structurally locked in Edit Mode', async ({ page }) => {
-  const b04=page.locator('#evidence-tower');
-  await expect(b04.locator('[data-editorial-policy="EDITABLE"]')).toHaveCount(0);
-  await expect(b04.locator('.ec-asset-control')).toHaveCount(0);
-  const title=b04.locator('h2');
-  const original=await title.textContent();
-  await title.click();
-  await expect(title).toHaveText(original);
-  await expect(title).not.toHaveAttribute('contenteditable', /.+/);
+test('19 B03 numeric change becomes evidence-affecting', async ({page})=>{
+  await page.getByRole('button',{name:'CHỈNH NỘI DUNG ĐỒ HỌA'}).click();
+  await page.locator('#b03-project').fill('TOÀN DỰ ÁN ≈ 10.701 m²');
+  await page.locator('#b03-save').click();
+  const d=await page.evaluate(()=>window.__editorialConsoleV04.state.structured.B03);
+  expect(d.evidence_impact).toBe('EVIDENCE_AFFECTING');
 });
 
-test('17 B05 and B08 visual proposals retain HOLD_FOR_RESEARCH', async ({ page }) => {
-  for(const id of ['B05_MODEL_A','B08_LEGAL_VISUAL']){
-    await openAsset(page,id);
-    await expect(page.locator('#ec-panel-body')).toContainText('Đang chờ xác minh tư liệu');
-    await saveAsset(page,{caption:'QA hold proposal',alt:'QA hold',reason:'QA hold'});
-    const r=(await getAssets(page)).find(x=>x.slot_id===id);
-    expect(r.review_status).toBe('HOLD_FOR_RESEARCH');
-    expect(r.publish_eligible).toBe(false);
-    expect(r.gate_reasons).toContain('HOLD_FOR_RESEARCH');
+test('20 B03 whole-graphic replacement is a secondary media flow', async ({page})=>{
+  await page.getByRole('button',{name:'CHỈNH NỘI DUNG ĐỒ HỌA'}).click();
+  await page.getByRole('button',{name:'THAY TOÀN BỘ ĐỒ HỌA'}).click();
+  await expect(page.locator('#ec-panel-title')).toHaveText('THAY TOÀN BỘ ĐỒ HỌA — B03');
+  await expect(page.locator('#ec-media-file')).toBeVisible();
+});
+
+test('21 clicking B01 hotspot opens the matching contextual item action', async ({page})=>{
+  for(const [i,key] of ['them','rong','nen'].entries()){
+    const btn=page.locator('#remains [data-hotspot="'+key+'"]');
+    await btn.click();
+    await expect(btn).toHaveClass(/ec-hotspot-selected/);
+    const edit=page.locator('#hotspot-card [data-ec-hotspot-edit]');
+    await expect(edit).toContainText('ĐIỂM TƯƠNG TÁC '+(i+1));
+    await edit.click();
+    await expect(page.locator('#ec-panel-title')).toHaveText('CHỈNH THÀNH PHẦN TƯƠNG TÁC — B01');
+    await expect(page.locator('#b01-item-form h3')).toHaveText('ĐIỂM TƯƠNG TÁC '+(i+1));
+    await page.keyboard.press('Escape');
   }
 });
 
-test('18 Evidence impact cannot downgrade below slot minimum', async ({ page }) => {
-  for(const [id,minimum] of [['B01_REMAINS_VISUAL','EVIDENCE_SUPPORTING'],['B05_MODEL_A','EVIDENCE_AFFECTING'],['B08_LEGAL_VISUAL','CLAIM_AFFECTING']]){
-    await openAsset(page,id);
-    await saveAsset(page,{impact:'PRESENTATION_ONLY',caption:'QA impact',reason:'QA minimum'});
-    const r=(await getAssets(page)).find(x=>x.slot_id===id);
-    expect(r.evidence_impact).toBe(minimum);
-  }
-});
-
-test('19 Reconstruction uncertainty cannot be removed from final gates', async ({ page }) => {
-  await openAsset(page,'B06_ROOF_VISUAL');
-  await saveAsset(page,{type:'RECONSTRUCTION',representation:'DOCUMENTARY_PHOTO',caption:'QA reconstructed roof',reason:'QA representation'});
-  const r=(await getAssets(page)).find(x=>x.slot_id==='B06_ROOF_VISUAL');
-  expect(r.gate_reasons).toContain('RECONSTRUCTION_LABEL_REQUIRED');
-  expect(r.publish_eligible).toBe(false);
-  expect(r.evidence_impact).toBe('EVIDENCE_AFFECTING');
-});
-
-test('20 Rights, provenance, placeholder and alt gates prohibit final', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{type:'PLACEHOLDER',alt:'',rights:'UNKNOWN',provenance:'MISSING',reason:'QA gate'});
-  const r=(await getAssets(page)).find(x=>x.slot_id==='HERO_IMAGE');
-  expect(r.gate_reasons).toEqual(expect.arrayContaining(['RIGHTS_NOT_CLEARED','PROVENANCE_NOT_COMPLETE','PLACEHOLDER_NOT_FINAL','ALT_REQUIRED']));
-  expect(r.publish_eligible).toBe(false);
-});
-
-test('21 B01 hotspot remains interactive in edit mode', async ({ page }) => {
+test('22 B01 items edit independently and evidence level stays locked', async ({page})=>{
   await page.locator('#remains [data-hotspot="them"]').click();
-  await expect(page.locator('#hotspot-card')).not.toContainText('Chạm một điểm để xem bằng chứng.');
+  await page.locator('#hotspot-card [data-ec-hotspot-edit]').click();
+  await page.locator('#b01-title').fill('QA — Điểm 1');
+  await page.locator('#b01-save').click();
+  const items=await page.evaluate(()=>window.__editorialConsoleV04.state.interactive.B01.items);
+  expect(items[0].title).toBe('QA — Điểm 1');
+  expect(items[1].title).not.toBe('QA — Điểm 1');
+  expect(items[0].evidence_level).toBe('1');
+  expect(items[2].evidence_level).toBe('2');
 });
 
-test('22 B02 layer switch remains interactive', async ({ page }) => {
-  await page.locator('#beneath [data-layer="Trần"]').click();
-  await expect(page.locator('#beneath [data-layer="Trần"]')).toHaveAttribute('aria-pressed','true');
-  await expect(page.locator('#layer-info')).toContainText('Trần');
+test('23 B01 item has its own media editor', async ({page})=>{
+  await page.locator('#remains [data-hotspot="rong"]').click();
+  await page.locator('#hotspot-card [data-ec-hotspot-edit]').click();
+  await page.getByRole('button',{name:'CHỈNH MEDIA CỦA ĐIỂM'}).click();
+  await expect(page.locator('#ec-panel-title')).toContainText('ĐIỂM TƯƠNG TÁC 2');
+  const technical=page.locator('#editor-panel .ec-asset-advanced');
+  await technical.locator('summary').click();
+  await expect(technical.locator('pre')).toContainText('B01_HOTSPOT_02');
 });
 
-test('23 B03 plan toggle remains interactive', async ({ page }) => {
+test('24 Hero media editor is Vietnamese-first and has no fake Rights gate', async ({page})=>{
+  await openHeroMedia(page);
+  const p=page.locator('#editor-panel');
+  await expect(p).toContainText('Ảnh hoặc video');
+  await expect(p).toContainText('Chú thích');
+  await expect(p).toContainText('Tác giả / Nguồn');
+  await expect(p).toContainText('Nguồn tư liệu / Bối cảnh');
+  await expect(p).not.toContainText('Rights status');
+  await expect(p).not.toContainText('Quyền sử dụng');
+});
+
+test('25 image upload/replace produces an editor preview', async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-file').setInputFiles(file('hero-qa.png'));
+  await page.locator('#ec-media-caption').fill('Chú thích QA');
+  await page.locator('#ec-media-credit').fill('Tác giả QA');
+  await page.locator('#ec-media-alt').fill('Mô tả QA');
+  await page.locator('#ec-media-show-caption').check();
+  await page.locator('#ec-media-save').click();
+  await expect(page.locator('#s00 .ec-media-draft .ec-preview-image')).toBeVisible();
+  await expect(page.locator('#s00 .ec-reader-caption')).toHaveText('Chú thích QA');
+  await expect(page.locator('#s00 .ec-reader-credit')).toHaveText('Tác giả QA');
+});
+
+test('26 optional caption hides cleanly', async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-file').setInputFiles(file('hero-no-caption.png'));
+  await page.locator('#ec-media-caption').fill('Không hiển thị dòng này');
+  await page.locator('#ec-media-show-caption').uncheck();
+  await page.locator('#ec-media-save').click();
+  await expect(page.locator('#s00 .ec-reader-caption')).toHaveCount(0);
+});
+
+test('27 media metadata edit participates in Undo/Redo', async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-caption').fill('QA media metadata');
+  await page.locator('#ec-media-show-caption').check();
+  await page.locator('#ec-media-save').click();
+  await expect(page.locator('#s00 .ec-reader-caption')).toHaveText('QA media metadata');
+  await action(page,'undo').click();
+  await expect(page.locator('#s00 .ec-reader-caption')).toHaveCount(0);
+  await action(page,'redo').click();
+  await expect(page.locator('#s00 .ec-reader-caption')).toHaveText('QA media metadata');
+});
+
+test('28 video slot smoke test exposes practical options and soft guidance', async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-file').setInputFiles(file('clip.mp4','video/mp4',Buffer.alloc(2048)));
+  await expect(page.locator('.ec-video-options')).toBeVisible();
+  await expect(page.locator('#ec-media-ratio')).toBeVisible();
+  await expect(page.locator('#ec-media-autoplay')).toBeVisible();
+  await expect(page.locator('#ec-media-loop')).toBeVisible();
+  await page.locator('#ec-media-autoplay').check();
+  await page.locator('#ec-media-save').click();
+  const media=await page.evaluate(()=>window.__editorialConsoleV04.state.media.HERO_MEDIA);
+  expect(media.media_type).toBe('VIDEO');
+  expect(media.warnings.some(x=>x.includes('poster'))).toBe(true);
+  expect(media.warnings.some(x=>x.includes('Tự phát'))).toBe(true);
+});
+
+test('29 Publication metadata panel exposes newsroom fields', async ({page})=>{
+  await openPublication(page);
+  const p=page.locator('#editor-panel');
+  for(const label of ['Cơ quan báo chí / Măng-sét','Chuyên mục','Tiêu đề','Sapo','Tác giả / Nhóm tác giả','Ngày xuất bản','Giờ xuất bản','Ngày cập nhật gần nhất','URL slug']) await expect(p).toContainText(label);
+});
+
+test('30 Publication title/sapo and optional footer are data-driven', async ({page})=>{
+  await openPublication(page);
+  await page.locator('[data-pub="title"]').fill('QA — Tiêu đề xuất bản');
+  await page.locator('[data-pub="sapo"]').fill('QA — Sapo xuất bản');
+  await page.locator('[data-footer="authors"]').fill('Nhóm tác giả QA');
+  await page.locator('[data-footer="graphics"]').fill('');
+  await savePublication(page);
+  await expect(page.locator('#s00 h1')).toHaveText('QA — Tiêu đề xuất bản');
+  await expect(page.locator('#s00 .dek')).toHaveText('QA — Sapo xuất bản');
+  await expect(page.locator('.site-footer')).toContainText('Nhóm tác giả QA');
+  await expect(page.locator('.site-footer')).not.toContainText('Đồ họa / Thiết kế');
+});
+
+test('31 empty footer fields render nothing in reader preview', async ({page})=>{
+  await openPublication(page);
+  for(const el of await page.locator('[data-footer]').all()) await el.fill('');
+  await savePublication(page);
+  await action(page,'save').click();
+  await page.goto('/?preview=1');
+  await expect(page.locator('#editor-console')).toHaveCount(0);
+  await expect(page.locator('.site-footer .wrap p')).toHaveCount(0);
+});
+
+test('32 Preview opens reader mode and share is available', async ({page})=>{
+  const href=await page.locator('[data-ec-action="preview"]').getAttribute('href');
+  expect(href).toContain('preview=1');
+  expect(href).not.toContain('edit=1');
+  await page.goto('/?preview=1');
+  await expect(page.locator('#editor-console')).toHaveCount(0);
+  await expect(page.locator('.reader-share [data-share-native]')).toHaveText('Chia sẻ');
+  await expect(page.locator('.reader-share [data-share-copy]')).toHaveText('Sao chép liên kết');
+});
+
+test('33 Reader view does not expose internal workflow codes', async ({page})=>{
+  await page.goto('/');
+  const visible=await page.locator('body').innerText();
+  for(const raw of ['HOLD_FOR_RESEARCH','EVIDENCE-SENSITIVE','B01_HOTSPOT_01','RIGHTS_NOT_CLEARED','PROVENANCE_NOT_COMPLETE','asset_id','slot_id']) expect(visible).not.toContain(raw);
+  expect(visible).not.toContain('MÔ HÌNH BIÊN TẬP VỀ MỨC BẰNG CHỨNG');
+  expect(visible).not.toContain('MỨC BẰNG CHỨNG 5');
+});
+
+test('34 B01/B03/B05/B06/B08 reader interactions still work', async ({page})=>{
+  await page.goto('/');
+  await page.locator('#remains [data-hotspot="them"]').click();
+  await expect(page.locator('#hotspot-card h3')).toContainText('Thềm rồng');
   await page.locator('#measure [data-plan="court"]').click();
   await expect(page.locator('#measure [data-plan="court"]')).toHaveAttribute('aria-pressed','true');
-});
-
-test('24 B04 five evidence levels remain interactive', async ({ page }) => {
-  await page.locator('#evidence-tower [data-level-control="4"]').click();
-  await expect(page.locator('#evidence-tower [data-level-control="4"]')).toHaveAttribute('aria-pressed','true');
-  await expect(page.locator('#tower-copy')).toContainText('Suy dựng');
-});
-
-test('25 B05 tabs remain interactive', async ({ page }) => {
   await page.locator('#tab-b').click();
   await expect(page.locator('#tab-b')).toHaveAttribute('aria-selected','true');
-  await expect(page.locator('#model-b')).toBeVisible();
-  await expect(page.locator('#model-a')).toBeHidden();
-});
-
-test('26 B06 reasoning and B08 verb ladder remain interactive', async ({ page }) => {
   await page.locator('#roof-case [data-reason="wood"]').click();
-  await expect(page.locator('#reason-info')).not.toBeEmpty();
+  await expect(page.locator('#reason-info h3')).toContainText('Cấu kiện gỗ');
   await page.locator('#control-gates [data-verb="requests"]').click();
-  await expect(page.locator('#verb-info')).not.toBeEmpty();
+  await expect(page.locator('#verb-info')).toContainText('Đưa ra yêu cầu');
 });
 
-test('27 Keyboard Tab/Enter opens inline editor and Escape cancels', async ({ page }) => {
-  const h1=page.locator('#s00 h1');
-  const before=await h1.textContent();
-  await h1.focus();
-  await expect(h1).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(h1).toHaveAttribute('contenteditable','plaintext-only');
-  await h1.fill('QA KEYBOARD');
-  await page.keyboard.press('Escape');
-  await expect(h1).toHaveText(before);
-});
-
-test('28 Asset panel Escape closes and keyboard focus remains usable', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await expect(page.locator('#ec-asset-file')).toBeFocused();
-  await page.keyboard.press('Tab');
-  await expect(page.locator('#editor-panel')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#editor-panel')).toBeHidden();
-});
-
-test('29 Compare panel Escape closes and returns focus', async ({ page }) => {
-  await action(page,'compare').focus();
+test('35 editor panel Escape closes and returns focus', async ({page})=>{
+  await action(page,'publication').focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#editor-panel')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('#editor-panel')).toBeHidden();
-  await expect(action(page,'compare')).toBeFocused();
+  await expect(action(page,'publication')).toBeFocused();
 });
 
-test('30 Viewport has no document-level horizontal overflow', async ({ page }) => {
-  const dimensions=await page.evaluate(()=>({
-    width:document.documentElement.clientWidth,
-    scrollWidth:document.documentElement.scrollWidth,
-    toolbar:document.querySelector('#editor-console').getBoundingClientRect().width
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width+1);
-  expect(dimensions.toolbar).toBeLessThanOrEqual(dimensions.width+1);
+test('36 page has no horizontal overflow at configured viewport', async ({page})=>{
+  const d=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,toolbar:document.querySelector('#editor-console').getBoundingClientRect().width}));
+  expect(d.scroll).toBeLessThanOrEqual(d.client+1);
+  expect(d.toolbar).toBeLessThanOrEqual(d.client+1);
 });
 
-test('31 Asset preview and caption wrap inside viewport', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{file:'responsive-qa.png',caption:'QA '.repeat(60),alt:'QA image',reason:'QA responsive'});
-  const bounds=await slot(page,'HERO_IMAGE').locator('.ec-asset-display').boundingBox();
-  expect(bounds).toBeTruthy();
-  const width=page.viewportSize().width;
-  expect(bounds.x).toBeGreaterThanOrEqual(-1);
-  expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);
-});
-
-test('32 No page errors on editor startup and core interactions', async ({ page }) => {
-  const errors=[];
-  page.on('pageerror',err=>errors.push(err.message));
+test('37 no uncaught page errors during core editor routing', async ({page})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.reload();
-  await action(page,'compare').click();
-  await page.locator('#ec-close').click();
-  await openAsset(page,'B01_REMAINS_VISUAL');
-  await page.locator('#ec-asset-cancel').click();
+  await action(page,'publication').click();await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'CHỈNH NỘI DUNG ĐỒ HỌA'}).click();await page.keyboard.press('Escape');
+  await page.locator('#remains [data-hotspot="nen"]').click();
+  await page.locator('#hotspot-card [data-ec-hotspot-edit]').click();await page.keyboard.press('Escape');
   expect(errors).toEqual([]);
-});
-
-
-test('33 Asset default summary hides raw IDs, gate codes and technical manifest', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{file:'ux-qa.png',caption:'Chú thích ảnh QA',credit:'Tác giả QA',alt:'Mô tả ảnh QA',reason:'Kiểm tra UX'});
-  const display=slot(page,'HERO_IMAGE').locator('.ec-asset-display');
-  await expect(display.locator('.ec-preview-image')).toBeVisible();
-  await expect(display.locator('.ec-asset-caption')).toContainText('Chú thích ảnh QA');
-  await expect(display.locator('.ec-asset-credit')).toContainText('Tác giả QA');
-  await expect(display.locator('.ec-asset-status')).toContainText('Chưa đủ điều kiện');
-  await expect(display.locator('.ec-asset-warning')).toContainText('Chưa xác nhận quyền sử dụng');
-  await expect(display.locator('.ec-asset-warning')).not.toContainText('RIGHTS_NOT_CLEARED');
-  await expect(display.locator('.ec-asset-compact')).toContainText('Đồ họa biên tập');
-  await expect(display.locator('.ec-asset-compact')).toContainText('Đã có');
-  await expect(display.locator('.ec-asset-technical-data')).toBeHidden();
-  await expect(display.locator('.ec-asset-advanced summary')).toHaveText('CHI TIẾT KỸ THUẬT');
-  const children=await display.evaluate(el=>Array.from(el.children).map(n=>n.className));
-  expect(children[0]).toContain('ec-preview-image');
-});
-
-test('34 Advanced toggle reveals technical metadata and closes on second click', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{file:'advanced-qa.png',alt:'Mô tả QA',reason:'QA advanced'});
-  const details=slot(page,'HERO_IMAGE').locator('.ec-asset-advanced');
-  await expect(details).not.toHaveAttribute('open',/.+/);
-  await details.locator('summary').click();
-  await expect(details).toHaveAttribute('open','');
-  const technical=details.locator('.ec-asset-technical-data');
-  await expect(technical).toContainText('asset_id');
-  await expect(technical).toContainText('slot_id');
-  await expect(technical).toContainText('RIGHTS_NOT_CLEARED');
-  await expect(technical).toContainText('upload_manifest');
-  await details.locator('summary').click();
-  await expect(technical).toBeHidden();
-});
-
-test('35 Rights/provenance and accessibility warnings are editorial language', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{type:'PLACEHOLDER',alt:'',rights:'RESTRICTED',provenance:'PARTIAL',reason:''});
-  const display=slot(page,'HERO_IMAGE').locator('.ec-asset-display');
-  const warning=display.locator('.ec-asset-warning');
-  await expect(warning).toContainText('Ảnh này chưa đủ điều kiện xuất bản');
-  await expect(warning).toContainText('Chưa xác nhận quyền sử dụng');
-  await expect(warning).toContainText('Thông tin nguồn gốc chưa đầy đủ');
-  await expect(warning).toContainText('Chưa có mô tả ảnh cho accessibility');
-  await expect(warning).toContainText('Cần ghi lý do thay ảnh');
-  await expect(warning).not.toContainText('ALT_REQUIRED');
-  await expect(display.locator('.ec-asset-compact')).toContainText('Bị hạn chế');
-  await expect(display.locator('.ec-asset-compact')).toContainText('Một phần');
-  const record=(await getAssets(page)).find(x=>x.slot_id==='HERO_IMAGE');
-  expect(record.gate_reasons).toContain('RIGHTS_NOT_CLEARED');
-  expect(record.publish_eligible).toBe(false);
-});
-
-test('36 Edit Asset panel keeps full fields and collapses technical details', async ({ page }) => {
-  await openAsset(page,'B05_MODEL_A');
-  await expect(page.locator('#ec-panel-body')).toContainText('Đang chờ xác minh tư liệu');
-  for(const id of ['ec-asset-file','ec-asset-caption','ec-asset-credit','ec-asset-alt','ec-asset-source','ec-asset-rights','ec-asset-provenance','ec-asset-representation','ec-asset-impact','ec-asset-reason']){
-    await expect(page.locator('#'+id)).toBeAttached();
-  }
-  const details=page.locator('#editor-panel .ec-asset-panel-advanced');
-  await expect(details.locator('.ec-asset-technical-data')).toBeHidden();
-  await details.locator('summary').click();
-  await expect(details.locator('.ec-asset-technical-data')).toContainText('baseline_asset_id');
-  await expect(details.locator('.ec-asset-technical-data')).toContainText('slot_id');
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#editor-panel')).toBeHidden();
-});
-
-test('37 Caption and compact warning fit viewport after upload', async ({ page }) => {
-  await openAsset(page,'HERO_IMAGE');
-  await saveAsset(page,{file:'mobile-ux-qa.png',caption:'Chú thích dài '.repeat(40),credit:'Tòa soạn',alt:'QA',reason:'Kiểm tra mobile'});
-  const display=slot(page,'HERO_IMAGE').locator('.ec-asset-display');
-  const caption=display.locator('.ec-asset-caption');
-  const bounds=await caption.boundingBox();
-  expect(bounds).toBeTruthy();
-  expect(bounds.x).toBeGreaterThanOrEqual(-1);
-  expect(bounds.x+bounds.width).toBeLessThanOrEqual(page.viewportSize().width+1);
-  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
-});
-
-
-test('38 B01 hotspot click exposes the correct contextual asset editor and highlight', async ({ page }) => {
-  const hotspots=['them','rong','nen'];
-  for(let i=0;i<hotspots.length;i++){
-    const hotspot=page.locator('#remains [data-hotspot="'+hotspots[i]+'"]');
-    await hotspot.click();
-    await expect(hotspot).toHaveClass(/ec-hotspot-selected/);
-    const context=page.locator('#hotspot-card .ec-hotspot-context-action');
-    await expect(context).toHaveCount(1);
-    await expect(context).toContainText('ĐIỂM TƯƠNG TÁC '+(i+1));
-    await context.click();
-    await expect(page.locator('#ec-panel-title')).toHaveText('CHỈNH ẢNH — ĐIỂM TƯƠNG TÁC '+(i+1));
-    await expect(page.locator('#editor-panel .ec-asset-section')).toContainText('B01 — Dấu tích còn lại');
-    await expect(slot(page,'B01_HOTSPOT_0'+(i+1))).toHaveClass(/ec-hotspot-asset-selected/);
-    await page.keyboard.press('Escape');
-    await expect(page.locator('#editor-panel')).toBeHidden();
-  }
-});
-
-test('39 B01 hotspot asset slots save, reload and export independently', async ({ page }) => {
-  for(let i=1;i<=3;i++){
-    const id='B01_HOTSPOT_0'+i;
-    await openAsset(page,id);
-    await expect(page.locator('#ec-panel-title')).toContainText('ĐIỂM TƯƠNG TÁC '+i);
-    await saveAsset(page,{file:'hotspot-'+i+'.png',caption:'Ảnh riêng điểm '+i,credit:'Tác giả '+i,alt:'Mô tả điểm '+i,reason:'Kiểm tra slot '+i});
-  }
-  const records=await getAssets(page);
-  expect(records.filter(x=>x.slot_id.startsWith('B01_HOTSPOT_'))).toHaveLength(3);
-  expect(records.find(x=>x.slot_id==='B01_REMAINS_VISUAL')).toBeUndefined();
-  for(let i=1;i<=3;i++){
-    const id='B01_HOTSPOT_0'+i;
-    const rec=records.find(x=>x.slot_id===id);
-    expect(rec.new.caption).toBe('Ảnh riêng điểm '+i);
-    expect(rec.evidence_impact).toBe('EVIDENCE_SUPPORTING');
-    expect(rec.publish_eligible).toBe(false);
-  }
-  const data=await exported(page);
-  for(let i=1;i<=3;i++)expect(data.changes.some(x=>x.slot_id==='B01_HOTSPOT_0'+i)).toBe(true);
-  await action(page,'save').click();
-  await page.reload();
-  for(let i=1;i<=3;i++){
-    const id='B01_HOTSPOT_0'+i;
-    await expect(slot(page,id).locator('.ec-asset-caption')).toContainText('Ảnh riêng điểm '+i);
-    await openAsset(page,id);
-    await expect(page.locator('#ec-asset-caption')).toHaveValue('Ảnh riêng điểm '+i);
-    await page.locator('#ec-asset-cancel').click();
-  }
-});
-
-test('40 Asset editor uses Vietnamese labels and options without exposing raw codes by default', async ({ page }) => {
-  await openAsset(page,'B01_HOTSPOT_02');
-  const panel=page.locator('#ec-panel-body');
-  for(const label of ['Loại hình ảnh','Chú thích ảnh','Nguồn / Tác giả','Mô tả ảnh cho người dùng khiếm thị','Ảnh trang trí','Nguồn tư liệu / Bối cảnh','Quyền sử dụng','Nguồn gốc tư liệu','Nhãn hiển thị','Mức ảnh hưởng đến bằng chứng','Lý do thay đổi']){
-    await expect(panel.locator('label').filter({hasText:label}).first()).toBeVisible();
-  }
-  await expect(page.locator('#ec-asset-type option[value="EDITORIAL_GRAPHIC"]')).toHaveText('Đồ họa biên tập');
-  await expect(page.locator('#ec-asset-type option[value="PHOTO_CURRENT"]')).toHaveText('Ảnh hiện trạng');
-  await expect(page.locator('#ec-asset-type option[value="RECONSTRUCTION"]')).toHaveText('Hình phục dựng');
-  await expect(page.locator('#ec-asset-type option[value="SCHEMATIC"]')).toHaveText('Sơ đồ minh họa');
-  await expect(page.locator('#ec-asset-rights option[value="NOT_CHECKED"]')).toHaveText('Chưa kiểm tra');
-  await expect(page.locator('#ec-asset-provenance option[value="MISSING"]')).toHaveText('Thiếu thông tin');
-  await expect(page.locator('#ec-asset-impact option[value="PRESENTATION_ONLY"]')).toHaveText('Chỉ thay đổi trình bày');
-  await expect(page.locator('#ec-asset-impact option[value="EVIDENCE_SUPPORTING"]')).toHaveText('Hỗ trợ bằng chứng');
-  await expect(page.locator('#ec-asset-impact option[value="EVIDENCE_AFFECTING"]')).toHaveText('Có ảnh hưởng đến bằng chứng');
-  await expect(page.locator('#ec-asset-impact option[value="CLAIM_AFFECTING"]')).toHaveText('Có ảnh hưởng đến nhận định');
-  const visible=await panel.evaluate(el=>el.innerText);
-  expect(visible).not.toContain('BASELINE_PLACEHOLDER_B01_HOTSPOT_02');
-  expect(visible).not.toContain('NOT_CHECKED');
-  expect(visible).not.toContain('EVIDENCE_SUPPORTING');
-  const advanced=panel.locator('.ec-asset-panel-advanced');
-  await advanced.locator('summary').click();
-  await expect(advanced.locator('pre')).toContainText('B01_HOTSPOT_02');
-  await expect(advanced.locator('pre')).toContainText('NOT_CHECKED');
-});
-
-test('41 Hotspot minimum evidence impact remains enforced; public mode stays clean', async ({ page }) => {
-  await openAsset(page,'B01_HOTSPOT_03');
-  await saveAsset(page,{impact:'PRESENTATION_ONLY',caption:'Đề xuất ảnh điểm 3',reason:'QA evidence guard'});
-  const rec=(await getAssets(page)).find(x=>x.slot_id==='B01_HOTSPOT_03');
-  expect(rec.evidence_impact).toBe('EVIDENCE_SUPPORTING');
-  expect(rec.new.evidence_level).toBe('2');
-  expect(rec.publish_eligible).toBe(false);
-  await action(page,'save').click(); // Public-mode regression without an unrelated unsaved-change dialog.
-  await page.goto('/');
-  await expect(page.locator('.ec-hotspot-asset-group')).toHaveCount(0);
-  await expect(page.locator('.ec-hotspot-context-action')).toHaveCount(0);
-  await expect(page.locator('#remains [data-hotspot]')).toHaveCount(3);
-});
-
-test('42 B01 hotspot contextual edit action supports keyboard and mobile width', async ({ page }) => {
-  const hotspot=page.locator('#remains [data-hotspot="rong"]');
-  await hotspot.focus();
-  await page.keyboard.press('Enter');
-  const actionButton=page.locator('#hotspot-card .ec-hotspot-context-action');
-  await expect(actionButton).toBeVisible();
-  await actionButton.focus();
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#ec-panel-title')).toContainText('ĐIỂM TƯƠNG TÁC 2');
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#editor-panel')).toBeHidden();
-  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
 });
