@@ -245,8 +245,8 @@
     BINARY_RESELECT_OR_CONTROLLED_UPLOAD_REQUIRED:'Cần chọn lại file ảnh để hoàn tất bàn giao'
   };
   const humanGate = code => gateLabels[code] || 'Cần kiểm tra bổ sung trong chi tiết kỹ thuật';
-  const readiness = (rec,hold) => hold ? 'Draft · Hold · Chờ xác minh' :
-    rec.gate_reasons.length ? 'Draft · Not Final · Chưa đủ điều kiện' : 'Draft · Ready for Review · Chờ duyệt';
+  const readiness = (rec,hold) => hold ? 'Bản nháp · Chờ bổ sung nghiên cứu' :
+    rec.gate_reasons.length ? 'Bản nháp · Chưa đủ điều kiện' : 'Bản nháp · Chờ duyệt';
   const rightsLabel = value => value==='CLEARED'?'Đã xác nhận':
     value==='RESTRICTED'?'Bị hạn chế':'Chưa kiểm tra';
   const provenanceLabel = value => value==='COMPLETE'?'Đầy đủ':
@@ -304,11 +304,11 @@
       display.append(img);
     } else if (rec.binaryRequired) {
       const p=document.createElement('p');p.className='ec-asset-empty';
-      p.textContent='Chưa có binary sau khi tải lại. Vui lòng chọn lại ảnh để xem trước và bàn giao.';
+      p.textContent='Tệp ảnh chưa được lưu sau khi tải lại. Vui lòng chọn lại ảnh để xem trước và bàn giao.';
       display.append(p);
     } else {
       const p=document.createElement('p');p.className='ec-asset-empty';
-      p.textContent='Đã cập nhật thông tin ảnh; chưa thay file ảnh.';
+      p.textContent='Đã cập nhật thông tin ảnh; chưa thay tệp ảnh.';
       display.append(p);
     }
     const summary=document.createElement('div');
