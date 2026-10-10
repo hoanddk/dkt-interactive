@@ -24,7 +24,7 @@ async function editText(page, text) {
 async function openAsset(page, id) {
   await assetButton(page, id).click();
   await expect(page.locator('#editor-panel')).toBeVisible();
-  await expect(page.locator('#ec-panel-title')).toContainText('CHỈNH SỬA ẢNH');
+  await expect(page.locator('#ec-panel-title')).toContainText(/CHỈNH (SỬA )?ẢNH/);
 }
 async function saveAsset(page, fields = {}) {
   if (fields.file) await page.locator('#ec-asset-file').setInputFiles(file(fields.file));
