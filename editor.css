@@ -1,0 +1,38 @@
+/* Interactive Editorial Console v0.1 — loaded only with ?edit=1 */
+body{padding-top:8.4rem}
+#editor-console{position:fixed;z-index:2000;top:0;left:0;right:0;background:#202c2b;color:#fff;border-bottom:3px solid #8db7aa;padding:.55rem max(1rem,calc((100vw - 75rem)/2));font:500 .82rem/1.4 system-ui,sans-serif;box-shadow:0 2px 12px #0002}
+.ec-heading{display:flex;justify-content:space-between;gap:1rem}.ec-heading strong{letter-spacing:.06em}
+.ec-state{color:#d5e4df;font-size:.72rem;margin:.15rem 0 .35rem}
+.ec-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+.ec-actions button,#editor-panel button{background:#f9f6ee;color:#1b2d2a;border:1px solid #9eb5af;border-radius:4px;padding:.36rem .6rem;min-height:2.2rem;font:600 .77rem system-ui,sans-serif;cursor:pointer}
+.ec-actions button:focus-visible,#editor-panel :focus-visible,[data-editorial-field]:focus-visible{outline:3px solid #e5a544;outline-offset:3px}
+.ec-actions button:disabled{opacity:.4;cursor:default}
+#ec-notice{font-size:.72rem;color:#e6f0eb;margin-top:.25rem}
+main [data-editorial-policy="EDITABLE"],main [data-editorial-policy="REVIEW_REQUIRED"]{cursor:text;outline:1px dashed transparent;outline-offset:4px}
+main [data-editorial-policy="EDITABLE"]:hover,main [data-editorial-policy="EDITABLE"]:focus-visible{background:#d9f2e65e;outline-color:#448d78}
+main [data-editorial-policy="REVIEW_REQUIRED"]{border-inline-start:3px solid #bf8c37;padding-inline-start:.45rem}
+main [data-editorial-policy="REVIEW_REQUIRED"]:hover,main [data-editorial-policy="REVIEW_REQUIRED"]:focus-visible{background:#f5e8cd}
+main [data-editorial-policy="HOLD_FOR_RESEARCH"]{cursor:pointer;outline:1px dashed #b97631;outline-offset:3px}
+main [data-editorial-policy="HOLD_FOR_RESEARCH"]:hover,main [data-editorial-policy="HOLD_FOR_RESEARCH"]:focus-visible{background:#fff0d4}
+main [data-editorial-policy="HOLD_FOR_RESEARCH"]::after{content:"EVIDENCE-SENSITIVE / HOLD_FOR_RESEARCH";display:inline-block;vertical-align:middle;margin-left:.4rem;padding:.12rem .3rem;border-radius:3px;background:#fff0d4;color:#784214;font:700 .57rem/1.4 system-ui,sans-serif}
+main [data-editorial-policy="LOCKED"]:hover{outline:1px dotted #858585;outline-offset:3px}
+main [data-editorial-policy="LOCKED"]:hover::after{content:"LOCKED";display:inline-block;vertical-align:middle;margin-left:.3rem;color:#666;font:700 .6rem system-ui,sans-serif}
+main .ec-active{outline:3px solid #22745b!important;background:#fff!important;min-height:1.6em;white-space:pre-wrap}
+main .ec-changed{box-shadow:inset 0 -3px #f0b25a}
+main .ec-proposal{box-shadow:inset 0 -3px #b7773a}
+#editor-panel{position:fixed;z-index:2100;right:0;top:0;bottom:0;width:min(100vw,36rem);overflow:auto;padding:1.25rem;background:#fffdf7;color:#1f2523;box-shadow:-5px 0 20px #0003;font:400 .9rem/1.5 system-ui,sans-serif}
+#editor-panel[hidden]{display:none!important}
+.ec-panel-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;border-bottom:1px solid #c6c9c4;padding-bottom:.5rem;margin-bottom:1rem}
+#editor-panel h2{font:700 1.25rem system-ui,sans-serif;margin:0}
+#editor-panel h3{font:700 1rem system-ui,sans-serif;margin:.2rem 0}
+#editor-panel label{display:block;margin:.8rem 0;font-weight:700}
+#editor-panel textarea,#editor-panel select,#editor-panel input{width:100%;font:400 .9rem/1.5 system-ui,sans-serif;border:1px solid #9daaa4;padding:.5rem;margin-top:.2rem;background:white;color:#1f2523;border-radius:4px}
+#editor-panel blockquote{margin:.5rem 0;padding:.75rem;background:#f3f0e8;border-left:3px solid #8c9188;white-space:pre-wrap}
+.ec-warning{padding:.7rem;background:#fff0d4;border-left:4px solid #b67d30;font-weight:700}
+.ec-small{color:#58635e;font-size:.76rem;overflow-wrap:anywhere}
+.ec-diff{border-bottom:1px solid #c6c9c4;padding:.8rem 0 1rem}
+.ec-before,.ec-after{padding:.6rem .75rem;margin:.5rem 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ec-before{background:#f7e8e5}.ec-after{background:#e3f2e8}
+.ec-before p,.ec-after p{margin:.3rem 0}
+@media(max-width:720px){body{padding-top:12.8rem}#editor-console{padding:.4rem .6rem}.ec-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.ec-actions button{font-size:.64rem;padding:.28rem .15rem;min-height:2rem}#editor-panel{width:100vw}main [data-editorial-policy="HOLD_FOR_RESEARCH"]::after{font-size:.55rem}}
+@media(prefers-reduced-motion:reduce){#editor-panel{scroll-behavior:auto}}
