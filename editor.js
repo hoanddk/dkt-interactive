@@ -55,7 +55,7 @@
   const fields = new Map();
   main.querySelectorAll(contentSelector).forEach((el) => {
     const section = sectionOf(el);
-    if (!section || !section.id || el.closest('[hidden]') || !textValue(el)) return;
+    if (!section || !section.id || !textValue(el)) return;
     const path = selectorFor(el, section);
     const id = section.id + ':' + hash(path);
     const rich = Array.from(el.children).length > 0;
@@ -68,7 +68,6 @@
     el.dataset.editorialPolicy = policy;
     if (policy !== 'LOCKED') {
       el.tabIndex = 0;
-      el.setAttribute('role', 'button');
       el.setAttribute('aria-label', (policy === 'HOLD_FOR_RESEARCH' ? 'Đề xuất câu chữ, đang giữ chờ nghiên cứu: ' : 'Chỉnh sửa: ') + field.baseline.slice(0, 100));
     } else {
       el.title = 'LOCKED — không cho thay đổi logic, cấu trúc hoặc dữ liệu bằng editor v0.1';
@@ -124,13 +123,14 @@
     return ['EDITORIAL_REVIEW'];
   };
   const defaultKind = (field) => field.policy === 'HOLD_FOR_RESEARCH' || field.policy === 'REVIEW_REQUIRED' ? 'EVIDENCE_AFFECTING' : 'COPY_ONLY';
+  const qcFor = (kind, policy) => Array.from(new Set(getQC(kind).concat(policy === 'HOLD_FOR_RESEARCH' || policy === 'REVIEW_REQUIRED' ? ['SOURCE_VERIFICATION', 'EVIDENCE_QC'] : [])));
   const makeRecord = (field, proposed, prior) => {
     const classification = prior ? prior.classification : defaultKind(field);
     const reviewStatus = field.policy === 'HOLD_FOR_RESEARCH' ? 'HOLD_FOR_RESEARCH' :
       (mode === 'LIVE_EDIT' ? 'DRAFT' : 'PENDING_REVIEW');
     return { fieldId: field.id, selector: field.path, section: field.section, element: field.element,
       before: field.baseline, after: proposed, classification, reviewStatus,
-      impactQc: getQC(classification), timestamp: time(), editorialMode: mode,
+      impactQc: qcFor(classification, field.policy), timestamp: time(), editorialMode: mode,
       evidencePolicy: field.policy, reason: prior ? prior.reason || '' : '',
       previewOnly: field.policy === 'HOLD_FOR_RESEARCH' };
   };
@@ -274,7 +274,7 @@
     pushUndo();
     rec[key] = value;
     rec.timestamp = time();
-    if (key === 'classification') rec.impactQc = getQC(value);
+    if (key === 'classification') rec.impactQc = qcFor(value, rec.evidencePolicy);
     refresh();
     showCompare();
   };
@@ -300,6 +300,11 @@
     if (!revisions.size) return;
     const changes = recordList();
     const post = mode === 'POST_PUBLISH_EDITABLE';
+    if (post && changes.some((r) => !r.reason.trim())) {
+      showNotice('POST_PUBLISH_UPDATE yêu cầu ghi reason cho từng thay đổi trong COMPARE.');
+      showCompare();
+      return;
+    }
     const payload = {
       schema: 'interactive-editorial-changeset/v0.1',
       consoleVersion: '0.1', exportedAt: time(), productState, editorialAccessState: mode,
@@ -344,7 +349,14 @@
   });
   panel.querySelector('#ec-close').addEventListener('click', closePanel);
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && panelOpen) { event.preventDefault(); closePanel(); }
+    if (!panelOpen) return;
+    if (event.key === 'Escape') { event.preventDefault(); closePanel(); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(panel.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+    if (!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   });
   window.addEventListener('beforeunload', (event) => {
     if (fingerprint() !== savedFingerprint) { event.preventDefault(); event.returnValue = ''; }
