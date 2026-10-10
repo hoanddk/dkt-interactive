@@ -112,6 +112,7 @@
   const count = bar.querySelector('#ec-count');
 
   const recordList = () => Array.from(revisions.values()).sort((a, b) => a.fieldId.localeCompare(b.fieldId));
+  const assetConsole = () => window.__editorialAssets || null;
   const fingerprint = () => JSON.stringify(recordList());
   const showNotice = (message) => {
     notice.textContent = message;
@@ -147,7 +148,7 @@
     for (const field of fields.values()) applyRecord(field, revisions.get(field.id));
     count.textContent = revisions.size + ' changes' + (fingerprint() === savedFingerprint ? ' · saved' : ' · unsaved');
     bar.querySelector('[data-ec-action="undo"]').disabled = undoStack.length === 0;
-    bar.querySelector('[data-ec-action="export"]').disabled = revisions.size === 0;
+    bar.querySelector('[data-ec-action="export"]').disabled = revisions.size === 0 && !(assetConsole() && assetConsole().hasChanges());
   };
   const pushUndo = () => {
     undoStack.push(recordList().map((r) => ({...r})));
@@ -159,6 +160,7 @@
     if (cleaned === (revisions.get(field.id)?.after || field.baseline)) return;
     if (cleaned.length > 10000) { showNotice('Tối đa 10.000 ký tự mỗi trường.'); return; }
     pushUndo();
+    window.__editorialLastEdit = 'text';
     if (!cleaned || cleaned === field.baseline) revisions.delete(field.id);
     else revisions.set(field.id, makeRecord(field, cleaned, revisions.get(field.id)));
     refresh();
@@ -245,6 +247,8 @@
       baselineId, savedAt: time(), editorialMode: mode, changes: recordList() };
     try {
       localStorage.setItem(storageKey, JSON.stringify(payload));
+      const assets = assetConsole();
+      if (assets) assets.saveDraft();
       localHistory.push({ savedAt: payload.savedAt, editorialMode: mode, baselineId, changes: recordList() });
       localHistory = localHistory.slice(-25);
       localStorage.setItem(historyKey, JSON.stringify(localHistory));
@@ -261,6 +265,7 @@
     if (!window.confirm('Khôi phục baseline của nhánh review? Các thay đổi chưa export có thể mất.')) return;
     pushUndo();
     revisions.clear();
+    if (assetConsole()) assetConsole().restoreAll();
     try { localStorage.removeItem(storageKey); } catch (error) { /* local storage unavailable */ }
     savedFingerprint = fingerprint();
     refresh();
@@ -268,7 +273,8 @@
   };
   const undo = () => {
     if (active) stopEdit(true);
-    if (!undoStack.length) return;
+    if (window.__editorialLastEdit === 'asset' && assetConsole() && assetConsole().undo()) { window.__editorialLastEdit = 'text'; showNotice('Đã hoàn tác asset draft.'); return; }
+    if (!undoStack.length) { if(assetConsole() && assetConsole().undo()) showNotice('Đã hoàn tác asset draft.'); return; }
     const snapshot = undoStack.pop();
     revisions.clear();
     snapshot.forEach((r) => revisions.set(r.fieldId, r));
@@ -298,16 +304,19 @@
         '<label>Reason / correction note <input data-ec-reason="' + safe(rec.fieldId) + '" value="' + safe(rec.reason) + '" placeholder="Ghi chú cho reviewer"></label>' +
         '<p class="ec-small">QC: ' + safe(rec.impactQc.join(', ')) + (rec.previewOnly ? ' · HOLD_FOR_RESEARCH · không preview lên trang' : '') + '</p></article>';
     }).join('');
-    openPanel('COMPARE · ' + revisions.size + ' changes', rows || '<p>Chưa có thay đổi so với baseline.</p>');
+    const assets = assetConsole();
+    const assetRows = assets ? assets.compareHtml() : '';
+    openPanel('COMPARE · ' + (revisions.size + (assets?assets.getChanges().length:0)) + ' changes', rows + assetRows || '<p>Chưa có thay đổi so với baseline.</p>');
     panel.querySelectorAll('[data-ec-kind]').forEach((sel) => sel.addEventListener('change', () => updateMetadata(sel.dataset.ecKind, 'classification', sel.value)));
     panel.querySelectorAll('[data-ec-reason]').forEach((inp) => inp.addEventListener('change', () => updateMetadata(inp.dataset.ecReason, 'reason', inp.value)));
   };
   const exportChanges = () => {
     if (active) stopEdit(true);
-    if (!revisions.size) return;
-    const changes = recordList();
+    const assets = assetConsole();
+    if (!revisions.size && !(assets && assets.hasChanges())) return;
+    const changes = recordList().concat(assets ? assets.getChanges() : []);
     const post = mode === 'POST_PUBLISH_EDITABLE';
-    if (post && changes.some((r) => !r.reason.trim())) {
+    if (post && changes.some((r) => !(r.reason || r.change_reason || '').trim())) {
       showNotice('POST_PUBLISH_UPDATE yêu cầu ghi reason cho từng thay đổi trong COMPARE.');
       showCompare();
       return;
@@ -321,8 +330,9 @@
       localSavedRevisionHistory: localHistory,
       postPublishUpdate: post ? { type: 'POST_PUBLISH_UPDATE', status: 'PENDING_REVIEW', publishedVersion: null } : null,
       changes,
+      assetUploadManifest: changes.filter(r => r.slot_id && r.upload_manifest).map(r => ({slot_id:r.slot_id,...r.upload_manifest})),
       review: { approved: false, mergeAllowed: false, publishAllowed: false,
-        holdCount: changes.filter((r) => r.previewOnly).length,
+        holdCount: changes.filter((r) => r.previewOnly || r.evidence_sensitive).length,
         qcGates: Array.from(new Set(changes.flatMap((r) => r.impactQc))) }
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -338,7 +348,7 @@
   };
   const exitMode = () => {
     if (active) stopEdit(true);
-    if (fingerprint() !== savedFingerprint && !window.confirm('Có thay đổi chưa SAVE DRAFT. Thoát Edit Mode?')) return;
+    if ((fingerprint() !== savedFingerprint || (assetConsole() && assetConsole().isDirty())) && !window.confirm('Có thay đổi chưa SAVE DRAFT. Thoát Edit Mode?')) return;
     const url = new URL(location.href);
     url.searchParams.delete('edit');
     url.searchParams.delete('editorial_mode');
