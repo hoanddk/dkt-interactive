@@ -32,9 +32,9 @@ document.querySelectorAll('[data-level-control]').forEach(btn=>btn.addEventListe
 renderTower(1);
 
 const hotspotData={
-  them:{title:'Thềm rồng phía Nam',html:'<p><strong>CHỨNG MINH ĐƯỢC:</strong> Dấu tích đá còn tại chỗ và hình thức quan sát được.</p><p><strong>KHÔNG CHỨNG MINH ĐƯỢC:</strong> Hệ cột, mái hay chiều cao toàn điện.</p><p class="small">MỨC BẰNG CHỨNG 1</p>'},
-  rong:{title:'Rồng đá',html:'<p><strong>CHỨNG MINH ĐƯỢC:</strong> Chi tiết điêu khắc, vật liệu và hiện trạng phần đá còn tồn tại.</p><p><strong>KHÔNG CHỨNG MINH ĐƯỢC:</strong> Niên đại của mọi chi tiết nếu không đối chiếu hồ sơ; không chứng minh hình thái điện gỗ.</p>'},
-  nen:{title:'Nền điện',html:'<p><strong>CHỨNG MINH ĐƯỢC:</strong> Vị trí và hiện trạng nền nhìn thấy trên mặt đất.</p><p><strong>KHÔNG CHỨNG MINH ĐƯỢC:</strong> Ảnh hiện trạng không thay bản vẽ đo khảo cổ hay địa tầng phía dưới.</p>'}
+  them:{title:'Thềm rồng phía Nam',html:'<p><strong>DẤU TÍCH GỐC CHO BIẾT:</strong> Bộ phận đá còn tại chỗ và những đặc điểm có thể quan sát trực tiếp.</p><p><strong>KHÔNG ĐỦ ĐỂ KẾT LUẬN:</strong> Hệ cột, mái hay chiều cao toàn điện.</p><p class="small">MỨC BẰNG CHỨNG 1 · ĐỒ HỌA CHỈ MINH HỌA, KHÔNG PHẢI BẰNG CHỨNG</p>'},
+  rong:{title:'Rồng đá phía Bắc',html:'<p><strong>DẤU TÍCH GỐC CHO BIẾT:</strong> Chi tiết điêu khắc, vật liệu và hiện trạng phần đá còn tồn tại.</p><p><strong>KHÔNG ĐỦ ĐỂ KẾT LUẬN:</strong> Niên đại của mọi chi tiết nếu không đối chiếu hồ sơ; không xác lập hình thái điện gỗ.</p><p class="small">MỨC BẰNG CHỨNG 1 · ĐỒ HỌA CHỈ MINH HỌA</p>'},
+  nen:{title:'Nền / móng — dữ liệu khảo cổ',html:'<p><strong>KHẢO CỔ VÀ ĐO ĐẠC CÓ THỂ CHO BIẾT:</strong> Vị trí, kích thước hoặc đặc điểm của những dấu tích nền/móng đã được khảo sát.</p><p><strong>KHÔNG ĐỦ ĐỂ KẾT LUẬN:</strong> Hình dáng toàn bộ kiến trúc phía trên. Đồ họa này không thay bản vẽ đo hoặc hồ sơ địa tầng.</p><p class="small">MỨC BẰNG CHỨNG 2 · DỮ LIỆU KHẢO CỔ, KHÔNG PHẢI ẢNH HIỆN TRẠNG</p>'}
 };
 document.querySelectorAll('[data-hotspot]').forEach(btn=>btn.addEventListener('click',()=>{
   const d=hotspotData[btn.dataset.hotspot];
