@@ -1,0 +1,124 @@
+name: Interactive Editorial Console - Runtime QA
+
+on:
+  push:
+    branches:
+      - editorial/round-2a-v0.1.5
+    paths:
+      - '.github/workflows/editorial-runtime-qa.yml'
+      - 'tests/browser/**'
+      - 'playwright.config.cjs'
+      - 'package.json'
+      - 'index.html'
+      - 'editor.js'
+      - 'asset-editor.js'
+      - 'editor.css'
+      - 'app.js'
+      - 'styles.css'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: editorial-runtime-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  chromium-qa:
+    if: github.ref == 'refs/heads/editorial/round-2a-v0.1.5'
+    name: Playwright Chromium / desktop + 390 + 375
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+    steps:
+      - name: Checkout exact review branch
+        uses: actions/checkout@v4
+        with:
+          ref: editorial/round-2a-v0.1.5
+          persist-credentials: false
+      - name: Assert checkout branch
+        shell: bash
+        run: |
+          test "$(git branch --show-current)" = "editorial/round-2a-v0.1.5"
+          git log -1 --format='%h %s'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright test runner
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Execute first-pass browser QA
+        id: browser_qa
+        continue-on-error: true
+        run: npx playwright test
+      - name: Generate QA summary from Playwright JSON
+        if: always()
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const file = 'test-results/results.json';
+          if (!fs.existsSync(file)) {
+            fs.writeFileSync('qa-summary.md', '# Runtime Browser QA\n\nBLOCKER: No Playwright JSON results (setup or runner failed).\n');
+            process.exit(0);
+          }
+          const result = JSON.parse(fs.readFileSync(file, 'utf8'));
+          let pass=0,fail=0,skip=0,flaky=0;
+          function walk(suite) {
+            for (const spec of suite.specs || []) for (const test of spec.tests || []) {
+              const status = test.status || '';
+              if(status === 'expected') pass++;
+              else if(status === 'flaky') {pass++;flaky++;}
+              else if(status === 'skipped') skip++;
+              else fail++;
+            }
+            for (const sub of suite.suites || []) walk(sub);
+          }
+          for (const suite of result.suites || []) walk(suite);
+          const report = [
+            '# Interactive Editorial Console v0.1 — Runtime Browser QA',
+            '',
+            '- Branch: editorial/round-2a-v0.1.5',
+            '- Browser: Chromium',
+            '- Viewports: 1440, 390, 375',
+            '- TOTAL: ' + (pass+fail+skip),
+            '- PASS: ' + pass,
+            '- FAIL: ' + fail,
+            '- SKIPPED: ' + skip,
+            '- FLAKY: ' + flaky,
+            '- FINAL ACCEPTANCE STATE: ' + (fail || skip ? 'BROWSER_QA_BLOCKED' : 'READY_FOR_EDITORIAL_USE'),
+            '',
+            'HTML report and trace/screenshots are attached to the workflow run.',
+            ''
+          ].join('\n');
+          fs.writeFileSync('qa-summary.md',report);
+          console.log(report);
+          NODE
+          cat qa-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editorial-console-playwright-html
+          path: playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload JSON summary and failure traces/screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editorial-console-qa-evidence
+          path: |
+            test-results/
+            qa-summary.md
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Fail job if browser QA failed
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.browser_qa.outcome }}" = "success"
