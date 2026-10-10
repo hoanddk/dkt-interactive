@@ -318,4 +318,5 @@
     saveDraft,restoreAll,undo:undoLast,compareHtml,
     slots:Array.from(slots.keys())
   };
+  if (typeof window.__editorialRefresh === 'function') window.__editorialRefresh();
 })();
