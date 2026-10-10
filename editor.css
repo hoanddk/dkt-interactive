@@ -36,3 +36,30 @@ main .ec-proposal{box-shadow:inset 0 -3px #b7773a}
 .ec-before p,.ec-after p{margin:.3rem 0}
 @media(max-width:720px){body{padding-top:12.8rem}#editor-console{padding:.4rem .6rem}.ec-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.ec-actions button{font-size:.64rem;padding:.28rem .15rem;min-height:2rem}#editor-panel{width:100vw}main [data-editorial-policy="HOLD_FOR_RESEARCH"]::after{font-size:.55rem}}
 @media(prefers-reduced-motion:reduce){#editor-panel{scroll-behavior:auto}}
+
+/* Visual editing — edit mode only, original public visual components untouched. */
+.ec-asset-host{position:relative;isolation:isolate}
+.ec-asset-control{display:block;position:relative;z-index:35;margin:.5rem 0;padding:.4rem .6rem;background:#173e36;color:#fff;border:2px solid #a9d3c6;border-radius:4px;font:700 .72rem/1.4 system-ui,sans-serif;cursor:pointer;max-width:100%;white-space:normal}
+.ec-asset-control:hover,.ec-asset-control:focus-visible{outline:3px solid #e5a544;outline-offset:2px}
+.ec-asset-display{position:relative;z-index:3;min-width:0;padding:.65rem;margin:.5rem 0;border:2px dashed #458a75;border-radius:5px;background:#f4f9f6;color:#19332c;font:400 .8rem/1.5 system-ui,sans-serif;overflow-wrap:anywhere}
+.ec-asset-display[hidden]{display:none}
+.ec-preview-image{display:block;width:100%;max-height:520px;height:auto;object-fit:contain;object-position:center;background:#ecebe6;border-radius:3px}
+.ec-asset-status{background:#fff0d4;color:#6c3e17;padding:.35rem .5rem;font:700 .72rem/1.4 system-ui,sans-serif;margin-bottom:.5rem}
+.ec-asset-meta{font-size:.77rem;line-height:1.5;margin:.35rem 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ec-virtual-asset{min-height:2.5rem;border:1px dashed #a8b6ae;margin:1rem 0;padding:.5rem}
+.ec-asset-input-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:1rem 0}
+.ec-asset-input-actions label{flex:1 1 100%;margin:.1rem 0}
+.ec-asset-input-actions button{flex:1 1 9rem}
+#editor-panel input[type="checkbox"]{width:auto;display:inline-block;margin:0 .4rem 0 0}
+#editor-panel input[type="file"]{max-width:100%;overflow-wrap:anywhere}
+#editor-panel .ec-before,#editor-panel .ec-after{overflow-wrap:anywhere}
+#s00 .ec-has-asset-change > figcaption{display:none}
+#s00 .ec-has-asset-change > .editorial-fallback{display:none}
+@media(max-width:720px){
+  body{padding-top:15.5rem}
+  .ec-asset-control{font-size:.65rem}
+  .ec-preview-image{max-height:50vh}
+  #editor-panel{padding:1rem}
+  .ec-asset-input-actions{display:block}
+  .ec-asset-input-actions button{margin:.25rem 0;width:100%}
+}
