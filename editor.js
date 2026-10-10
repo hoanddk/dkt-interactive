@@ -147,9 +147,10 @@
   const refresh = () => {
     for (const field of fields.values()) applyRecord(field, revisions.get(field.id));
     count.textContent = revisions.size + ' changes' + (fingerprint() === savedFingerprint ? ' · saved' : ' · unsaved');
-    bar.querySelector('[data-ec-action="undo"]').disabled = undoStack.length === 0;
+    bar.querySelector('[data-ec-action="undo"]').disabled = undoStack.length === 0 && !(assetConsole() && assetConsole().canUndo());
     bar.querySelector('[data-ec-action="export"]').disabled = revisions.size === 0 && !(assetConsole() && assetConsole().hasChanges());
   };
+  window.__editorialRefresh = refresh;
   const pushUndo = () => {
     undoStack.push(recordList().map((r) => ({...r})));
     if (undoStack.length > 60) undoStack.shift();
