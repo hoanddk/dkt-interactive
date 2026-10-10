@@ -408,6 +408,9 @@
     storageEnabled = false;
     showNotice('Local draft không khả dụng; có thể dùng EXPORT CHANGES.');
   }
+  // On a clean load, fingerprint() is '[]', not the empty initial sentinel.
+  // A restored valid draft already set savedFingerprint in the block above.
+  if (!savedFingerprint) savedFingerprint = fingerprint();
   refresh();
   if (!storageEnabled) bar.dataset.storageUnavailable = 'true';
 })();
