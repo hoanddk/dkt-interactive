@@ -159,7 +159,7 @@ test('12 Remove image marks draft, Restore Baseline removes visual draft', async
   await openAsset(page, 'HERO_IMAGE');
   await page.locator('#ec-asset-remove').click();
   await page.locator('#ec-asset-save').click();
-  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-display')).toContainText('REMOVED IN DRAFT');
+  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-empty')).toContainText('Ảnh đã được gỡ trong bản nháp');
   await openAsset(page, 'HERO_IMAGE');
   await page.locator('#ec-asset-restore').click();
   await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-display')).toBeHidden();
@@ -344,4 +344,85 @@ test('32 No page errors on editor startup and core interactions', async ({ page 
   await openAsset(page,'B01_REMAINS_VISUAL');
   await page.locator('#ec-asset-cancel').click();
   expect(errors).toEqual([]);
+});
+
+
+test('33 Asset default summary hides raw IDs, gate codes and technical manifest', async ({ page }) => {
+  await openAsset(page,'HERO_IMAGE');
+  await saveAsset(page,{file:'ux-qa.png',caption:'Chú thích ảnh QA',credit:'Tác giả QA',alt:'Mô tả ảnh QA',reason:'Kiểm tra UX'});
+  const display=slot(page,'HERO_IMAGE').locator('.ec-asset-display');
+  await expect(display.locator('.ec-preview-image')).toBeVisible();
+  await expect(display.locator('.ec-asset-caption')).toContainText('Chú thích ảnh QA');
+  await expect(display.locator('.ec-asset-credit')).toContainText('Tác giả QA');
+  await expect(display.locator('.ec-asset-status')).toContainText('Not Final');
+  await expect(display.locator('.ec-asset-warning')).toContainText('Chưa xác nhận quyền sử dụng');
+  await expect(display.locator('.ec-asset-warning')).not.toContainText('RIGHTS_NOT_CLEARED');
+  await expect(display.locator('.ec-asset-compact')).toContainText('Đồ họa biên tập');
+  await expect(display.locator('.ec-asset-compact')).toContainText('Đã có');
+  await expect(display.locator('.ec-asset-technical-data')).toBeHidden();
+  await expect(display.locator('.ec-asset-advanced summary')).toHaveText('CHI TIẾT KỸ THUẬT');
+  const children=await display.evaluate(el=>Array.from(el.children).map(n=>n.className));
+  expect(children[0]).toContain('ec-preview-image');
+});
+
+test('34 Advanced toggle reveals technical metadata and closes on second click', async ({ page }) => {
+  await openAsset(page,'HERO_IMAGE');
+  await saveAsset(page,{file:'advanced-qa.png',alt:'Mô tả QA',reason:'QA advanced'});
+  const details=slot(page,'HERO_IMAGE').locator('.ec-asset-advanced');
+  await expect(details).not.toHaveAttribute('open',/.+/);
+  await details.locator('summary').click();
+  await expect(details).toHaveAttribute('open','');
+  const technical=details.locator('.ec-asset-technical-data');
+  await expect(technical).toContainText('asset_id');
+  await expect(technical).toContainText('slot_id');
+  await expect(technical).toContainText('RIGHTS_NOT_CLEARED');
+  await expect(technical).toContainText('upload_manifest');
+  await details.locator('summary').click();
+  await expect(technical).toBeHidden();
+});
+
+test('35 Rights/provenance and accessibility warnings are editorial language', async ({ page }) => {
+  await openAsset(page,'HERO_IMAGE');
+  await saveAsset(page,{type:'PLACEHOLDER',alt:'',rights:'RESTRICTED',provenance:'PARTIAL',reason:''});
+  const display=slot(page,'HERO_IMAGE').locator('.ec-asset-display');
+  const warning=display.locator('.ec-asset-warning');
+  await expect(warning).toContainText('Ảnh này chưa đủ điều kiện xuất bản');
+  await expect(warning).toContainText('Chưa xác nhận quyền sử dụng');
+  await expect(warning).toContainText('Thông tin nguồn gốc chưa đầy đủ');
+  await expect(warning).toContainText('Chưa có mô tả ảnh cho accessibility');
+  await expect(warning).toContainText('Cần ghi lý do thay ảnh');
+  await expect(warning).not.toContainText('ALT_REQUIRED');
+  await expect(display.locator('.ec-asset-compact')).toContainText('Bị hạn chế');
+  await expect(display.locator('.ec-asset-compact')).toContainText('Một phần');
+  const record=(await getAssets(page)).find(x=>x.slot_id==='HERO_IMAGE');
+  expect(record.gate_reasons).toContain('RIGHTS_NOT_CLEARED');
+  expect(record.publish_eligible).toBe(false);
+});
+
+test('36 Edit Asset panel keeps full fields and collapses technical details', async ({ page }) => {
+  await openAsset(page,'B05_MODEL_A');
+  await expect(page.locator('#ec-panel-body')).toContainText('HOLD_FOR_RESEARCH');
+  for(const id of ['ec-asset-file','ec-asset-caption','ec-asset-credit','ec-asset-alt','ec-asset-source','ec-asset-rights','ec-asset-provenance','ec-asset-representation','ec-asset-impact','ec-asset-reason']){
+    await expect(page.locator('#'+id)).toBeAttached();
+  }
+  const details=page.locator('#editor-panel .ec-asset-panel-advanced');
+  await expect(details.locator('.ec-asset-technical-data')).toBeHidden();
+  await details.locator('summary').click();
+  await expect(details.locator('.ec-asset-technical-data')).toContainText('baseline_asset_id');
+  await expect(details.locator('.ec-asset-technical-data')).toContainText('slot_id');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#editor-panel')).toBeHidden();
+});
+
+test('37 Caption and compact warning fit viewport after upload', async ({ page }) => {
+  await openAsset(page,'HERO_IMAGE');
+  await saveAsset(page,{file:'mobile-ux-qa.png',caption:'Chú thích dài '.repeat(40),credit:'Tòa soạn',alt:'QA',reason:'Kiểm tra mobile'});
+  const display=slot(page,'HERO_IMAGE').locator('.ec-asset-display');
+  const caption=display.locator('.ec-asset-caption');
+  const bounds=await caption.boundingBox();
+  expect(bounds).toBeTruthy();
+  expect(bounds.x).toBeGreaterThanOrEqual(-1);
+  expect(bounds.x+bounds.width).toBeLessThanOrEqual(page.viewportSize().width+1);
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
 });
