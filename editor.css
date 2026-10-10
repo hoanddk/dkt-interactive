@@ -63,3 +63,27 @@ main .ec-proposal{box-shadow:inset 0 -3px #b7773a}
   .ec-asset-input-actions{display:block}
   .ec-asset-input-actions button{margin:.25rem 0;width:100%}
 }
+
+/* F-EDITOR-UX-01 — editorial-first visual asset summary; Edit Mode only. */
+.ec-asset-editorial-summary{display:grid;gap:.3rem;padding:.55rem .15rem .1rem}
+.ec-asset-caption{font:600 .88rem/1.55 system-ui,sans-serif;margin:.25rem 0 .05rem;overflow-wrap:anywhere}
+.ec-asset-credit{font:.78rem/1.5 system-ui,sans-serif;color:#41564c;margin:0;overflow-wrap:anywhere}
+.ec-asset-status{margin:.5rem 0 .25rem;padding:.35rem .6rem;background:#e5f0e9;color:#234b3b;border-radius:3px;font-size:.74rem}
+.ec-asset-warning{padding:.6rem .75rem;margin:.2rem 0;background:#fff4df;border-left:3px solid #bc8a35;border-radius:2px;font:.77rem/1.5 system-ui,sans-serif;color:#633e15}
+.ec-asset-warning strong{font-weight:700}
+.ec-asset-warning ul{padding-left:1.2rem;margin:.25rem 0 0}
+.ec-asset-warning li{margin:.12rem 0}
+.ec-asset-compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.1rem .7rem;margin:.35rem 0}
+.ec-asset-compact .ec-asset-meta{margin:.1rem 0;line-height:1.45}
+.ec-asset-empty{margin:.35rem 0;font-size:.82rem;color:#44584f}
+.ec-asset-advanced{margin:.35rem 0 0;border-top:1px solid #cbd8d0;padding:.4rem 0 0;min-width:0}
+.ec-asset-advanced summary{display:list-item;cursor:pointer;color:#2d5d4c;font:700 .72rem/1.5 system-ui,sans-serif;letter-spacing:.02em;max-width:100%;padding:.3rem}
+.ec-asset-advanced summary:focus-visible{outline:3px solid #e5a544;outline-offset:2px}
+.ec-asset-technical-data{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;overflow-x:auto;margin:.35rem 0;padding:.55rem;background:#edf1ee;color:#304238;font:400 .7rem/1.5 ui-monospace,monospace;border-radius:3px}
+#editor-panel .ec-asset-panel-advanced{margin:.65rem 0 1rem}
+@media(max-width:720px){
+  .ec-asset-editorial-summary{padding:.4rem 0 .1rem}
+  .ec-asset-compact{grid-template-columns:1fr}
+  .ec-asset-warning{padding:.5rem .65rem}
+  .ec-asset-technical-data{font-size:.65rem}
+}
