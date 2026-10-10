@@ -243,7 +243,9 @@
         change_reason:q('ec-asset-reason').value.trim(),removed};
       const nextFile=removed?null:(candidateFile||slot.file);
       const nextUrl=removed?null:(candidateUrl||slot.url);
-      const same=JSON.stringify({...newMeta,asset_id:slot.baseline.asset_id,file_name:slot.baseline.file_name,editorial_status:'BASELINE',version:0})===JSON.stringify(slot.baseline);
+      const comparable={...newMeta};
+      if (!comparable.removed) delete comparable.removed;
+      const same=JSON.stringify({...comparable,asset_id:slot.baseline.asset_id,file_name:slot.baseline.file_name,editorial_status:'BASELINE',version:0})===JSON.stringify(slot.baseline);
       if(same&&!nextFile) {undo.push(snapshot());slot.record=null;slot.file=null;slot.url=null;}
       else {
         undo.push(snapshot());
