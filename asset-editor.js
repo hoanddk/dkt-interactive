@@ -21,6 +21,9 @@
   const mapping = [
     ['HERO_IMAGE','s00','.asset-frame','EDITORIAL_GRAPHIC','EDITORIAL_ILLUSTRATION','PRESENTATION_ONLY',false],
     ['B01_REMAINS_VISUAL','remains','.hotspot-stage','EDITORIAL_GRAPHIC','NOT_CURRENT_PHOTO','EVIDENCE_SUPPORTING',false],
+    ['B01_HOTSPOT_01','remains',null,'EDITORIAL_GRAPHIC','NOT_CURRENT_PHOTO','EVIDENCE_SUPPORTING',false],
+    ['B01_HOTSPOT_02','remains',null,'EDITORIAL_GRAPHIC','NOT_CURRENT_PHOTO','EVIDENCE_SUPPORTING',false],
+    ['B01_HOTSPOT_03','remains',null,'EDITORIAL_GRAPHIC','NOT_CURRENT_PHOTO','EVIDENCE_SUPPORTING',false],
     ['B03_PLAN_VISUAL','measure','#plan-visual','SCHEMATIC','SCHEMATIC_NOT_TO_SCALE','EVIDENCE_SUPPORTING',false],
     ['B05_MODEL_A','models','#model-a .model-schematic','RECONSTRUCTION','RECONSTRUCTION_HYPOTHESIS','EVIDENCE_AFFECTING',true],
     ['B05_MODEL_B','models','#model-b .model-schematic','RECONSTRUCTION','RECONSTRUCTION_HYPOTHESIS','EVIDENCE_AFFECTING',true],
@@ -44,15 +47,33 @@
     slot_id:id, asset_id:'BASELINE_PLACEHOLDER_'+id, asset_type:type, file_name:null,
     caption:'',credit:'',source:'',alt_text:'',decorative:false,
     rights_status:'NOT_CHECKED',provenance_status:'MISSING',representation_status:repr,
-    evidence_level: id==='B01_REMAINS_VISUAL'?'1 / 2':id==='B06_ROOF_VISUAL'?'4':null,
+    evidence_level: id==='B01_REMAINS_VISUAL'?'1 / 2':id==='B01_HOTSPOT_03'?'2':/^B01_HOTSPOT_0[12]$/.test(id)?'1':id==='B06_ROOF_VISUAL'?'4':null,
     evidence_impact:impact,editorial_status:'BASELINE',change_reason:'',version:0,
     source_id:null,provenance_id:null
   });
   mapping.forEach(([id,sectionId,selector,type,repr,impact,hold]) => {
     const section = document.getElementById(sectionId);
     if (!section) return;
+    const hotspotNumber = /^B01_HOTSPOT_0([123])$/.exec(id)?.[1] || null;
     let target = selector ? section.querySelector(selector) : null;
     let virtual = false;
+    if (hotspotNumber) {
+      const stage = section.querySelector('.hotspot-stage');
+      let group = section.querySelector('.ec-hotspot-asset-group');
+      if (stage && !group) {
+        group = document.createElement('div');
+        group.className = 'ec-hotspot-asset-group';
+        group.setAttribute('aria-label','Chỉnh ảnh cho từng điểm tương tác B01');
+        stage.insertAdjacentElement('afterend',group);
+      }
+      if (group) {
+        target = document.createElement('div');
+        target.className = 'ec-hotspot-asset';
+        target.dataset.hotspotNumber = hotspotNumber;
+        group.append(target);
+        virtual = true;
+      }
+    }
     if (!target) {
       target = document.createElement('div');
       target.className = 'ec-virtual-asset';
@@ -69,6 +90,7 @@
       baseline.caption = cap ? cap.textContent.trim() : '';
     }
     if (id === 'B01_REMAINS_VISUAL') baseline.caption = 'ĐỒ HỌA BIÊN TẬP · KHÔNG PHẢI ẢNH HIỆN TRẠNG';
+    if (hotspotNumber) baseline.caption = 'Điểm tương tác '+Number(hotspotNumber)+' — chưa có ảnh riêng được xác minh';
     if (id === 'B03_PLAN_VISUAL') baseline.caption = 'Sơ đồ đơn giản hóa các phạm vi đo; không thay bản vẽ khảo cổ.';
     const originalImg = target.querySelector('img[src]');
     if (originalImg) {
@@ -76,16 +98,16 @@
       baseline.asset_id = 'BASELINE_'+id;
       baseline.alt_text = originalImg.alt || '';
     }
-    const slot = {id,sectionId,target,virtual,hold,baseline,record:null,file:null,url:null,preview:null,captionEl:null,ctrl:null,originalImg};
+    const slot = {id,sectionId,target,virtual,hold,hotspotNumber,baseline,record:null,file:null,url:null,preview:null,captionEl:null,ctrl:null,originalImg};
     slots.set(id,slot);
     target.dataset.editorialSlot = id;
     target.classList.add('ec-asset-host');
     const ctrl = document.createElement('button');
     ctrl.type = 'button';
     ctrl.className = 'ec-asset-control';
-    ctrl.textContent = hold?'CHỈNH ẢNH · Chờ xác minh':'CHỈNH ẢNH';
-    ctrl.setAttribute('aria-label','Edit visual asset '+id+(hold?' evidence-sensitive':''));
-    ctrl.addEventListener('click', e => {e.preventDefault();e.stopPropagation();open(slot);});
+    ctrl.textContent = hotspotNumber?'CHỈNH ẢNH ĐIỂM '+Number(hotspotNumber):(hold?'CHỈNH ẢNH · Chờ xác minh':'CHỈNH ẢNH');
+    ctrl.setAttribute('aria-label',hotspotNumber?'Chỉnh ảnh điểm tương tác '+Number(hotspotNumber)+' — B01 Dấu tích còn lại':'Chỉnh sửa hình ảnh'+(hold?' — chờ xác minh tư liệu':''));
+    ctrl.addEventListener('click', e => {e.preventDefault();e.stopPropagation();if(hotspotNumber)selectHotspot(slot);open(slot);});
     slot.ctrl = ctrl;
     target.append(ctrl);
     const display = document.createElement('div');
@@ -93,6 +115,38 @@
     display.hidden = true;
     slot.preview = display;
     target.append(display);
+  });
+  // The public hotspot interaction remains intact. Edit mode adds a contextual
+  // action AFTER app.js updates the evidence card; each action targets its own slot.
+  const selectHotspot = slot => {
+    if (!slot?.hotspotNumber) return;
+    const section = document.getElementById('remains');
+    section?.querySelectorAll('[data-hotspot]').forEach((btn,i)=>{
+      btn.classList.toggle('ec-hotspot-selected',i+1===Number(slot.hotspotNumber));
+    });
+    section?.querySelectorAll('.ec-hotspot-asset').forEach(el=>{
+      el.classList.toggle('ec-hotspot-asset-selected',el.dataset.hotspotNumber===slot.hotspotNumber);
+    });
+  };
+  document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>{
+    const id='B01_HOTSPOT_0'+(i+1);
+    const slot=slots.get(id);
+    if(!slot)return;
+    btn.addEventListener('click',()=>{
+      selectHotspot(slot);
+      queueMicrotask(()=>{
+        const card=document.querySelector('#hotspot-card');
+        if(!card)return;
+        const action=document.createElement('button');
+        action.type='button';
+        action.className='ec-hotspot-context-action';
+        action.textContent='CHỈNH ẢNH — ĐIỂM TƯƠNG TÁC '+(i+1);
+        action.setAttribute('aria-label','Mở chỉnh sửa ảnh điểm tương tác '+(i+1));
+        action.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();selectHotspot(slot);open(slot);});
+        card.querySelectorAll('.ec-hotspot-context-action').forEach(el=>el.remove());
+        card.append(action);
+      });
+    });
   });
   const snapshot = () => Array.from(slots.values()).map(s => ({
     id:s.id,record:s.record?JSON.parse(JSON.stringify(s.record)):null,file:s.file,url:s.url
@@ -154,9 +208,27 @@
   // Editorial labels only: gate codes, IDs and manifest remain unchanged in the data model.
   const typeLabels = {
     PHOTO_CURRENT:'Ảnh hiện trạng', ARCHIVAL_PHOTO:'Ảnh tư liệu',
-    EDITORIAL_GRAPHIC:'Đồ họa biên tập', SCHEMATIC:'Sơ đồ',
-    RECONSTRUCTION:'Ảnh phục dựng', MAP:'Bản đồ',
+    EDITORIAL_GRAPHIC:'Đồ họa biên tập', SCHEMATIC:'Sơ đồ minh họa',
+    RECONSTRUCTION:'Hình phục dựng', MAP:'Bản đồ',
     DATA_VISUAL:'Đồ họa dữ liệu', PLACEHOLDER:'Ảnh giữ chỗ'
+  };
+  const valueLabels = {
+    ...typeLabels,
+    NOT_CHECKED:'Chưa kiểm tra', UNKNOWN:'Chưa rõ', RESTRICTED:'Bị hạn chế', CLEARED:'Đã xác nhận',
+    MISSING:'Thiếu thông tin', PARTIAL:'Một phần', COMPLETE:'Đầy đủ',
+    EDITORIAL_ILLUSTRATION:'Đồ họa minh họa biên tập',
+    NOT_CURRENT_PHOTO:'Không phải ảnh hiện trạng',
+    RECONSTRUCTION_HYPOTHESIS:'Hình phục dựng giả định',
+    SCHEMATIC_NOT_TO_SCALE:'Sơ đồ không theo tỷ lệ',
+    DOCUMENTARY_PHOTO:'Ảnh tư liệu thực địa',
+    ARCHIVAL_WITH_CONTEXT:'Ảnh lưu trữ có bối cảnh',
+    PLACEHOLDER_NOT_FINAL:'Ảnh giữ chỗ — chưa hoàn thiện',
+    PRESENTATION_ONLY:'Chỉ thay đổi trình bày',
+    EVIDENCE_SUPPORTING:'Hỗ trợ bằng chứng',
+    EVIDENCE_AFFECTING:'Có ảnh hưởng đến bằng chứng',
+    CLAIM_AFFECTING:'Có ảnh hưởng đến nhận định',
+    HOLD_FOR_RESEARCH:'Chờ bổ sung nghiên cứu',
+    LOCKED:'Đã khóa'
   };
   const gateLabels = {
     HOLD_FOR_RESEARCH:'Đang chờ xác minh tư liệu',
@@ -241,8 +313,8 @@
     }
     const summary=document.createElement('div');
     summary.className='ec-asset-editorial-summary';
-    addLine(summary,'ec-asset-caption','Caption',m.caption||'Chưa có');
-    addLine(summary,'ec-asset-credit','Credit',m.credit||'Chưa có');
+    addLine(summary,'ec-asset-caption','Chú thích ảnh',m.caption||'Chưa có');
+    addLine(summary,'ec-asset-credit','Nguồn / Tác giả',m.credit||'Chưa có');
     const status=document.createElement('div');
     status.className='ec-asset-status';
     status.textContent=readiness(rec,s.hold);
@@ -263,44 +335,44 @@
     }
     const compact=document.createElement('div');
     compact.className='ec-asset-compact';
-    addLine(compact,'ec-asset-meta','Loại ảnh',typeLabels[m.asset_type]||'Loại ảnh cần kiểm tra');
-    addLine(compact,'ec-asset-meta','Alt',m.decorative?'Ảnh trang trí':m.alt_text.trim()?'Đã có':'Chưa có');
-    addLine(compact,'ec-asset-meta','Rights',rightsLabel(m.rights_status));
-    addLine(compact,'ec-asset-meta','Provenance',provenanceLabel(m.provenance_status));
+    addLine(compact,'ec-asset-meta','Loại hình ảnh',typeLabels[m.asset_type]||'Loại ảnh cần kiểm tra');
+    addLine(compact,'ec-asset-meta','Mô tả ảnh',m.decorative?'Ảnh trang trí':m.alt_text.trim()?'Đã có':'Chưa có');
+    addLine(compact,'ec-asset-meta','Quyền sử dụng',rightsLabel(m.rights_status));
+    addLine(compact,'ec-asset-meta','Nguồn gốc tư liệu',provenanceLabel(m.provenance_status));
     summary.append(compact);
     addTechnical(summary,rec,s);
     display.append(summary);
   };
   const refresh = () => {
     const btn=toolbar.querySelector('[data-ec-action="asset"]');
-    if(btn)btn.textContent='EDIT ASSET ('+changed().length+')';
+    if(btn)btn.textContent='CHỈNH ẢNH ('+changed().length+')';
     if (typeof window.__editorialRefresh === 'function') window.__editorialRefresh();
   };
-  const optionHtml = (values,selected) => values.map(v=>'<option value="'+esc(v)+'"'+(v===selected?' selected':'')+'>'+esc(v)+'</option>').join('');
+  const optionHtml = (values,selected) => values.map(v=>'<option value="'+esc(v)+'"'+(v===selected?' selected':'')+'>'+esc(valueLabels[v]||'Cần kiểm tra')+'</option>').join('');
   const open = slot => {
     if (!slot) return;
     active=slot;
     const m=slot.record?.new || slot.baseline;
     const title=panel.querySelector('#ec-panel-title');
-    title.textContent='CHỈNH SỬA ẢNH · '+(slot.hold?'Chờ xác minh':'Bản nháp');
+    title.textContent=slot.hotspotNumber?'CHỈNH ẢNH — ĐIỂM TƯƠNG TÁC '+Number(slot.hotspotNumber):'CHỈNH SỬA ẢNH · '+(slot.hold?'Chờ xác minh':'Bản nháp');
     const body=panel.querySelector('#ec-panel-body');
-    body.innerHTML='<p class="ec-warning">'+(slot.hold?'Đang chờ xác minh tư liệu — chỉ được đề xuất và xem trước, chưa thể xuất bản.':'Bản nháp ảnh — không tự cập nhật Git hoặc xuất bản.')+'</p>'+
+    body.innerHTML=(slot.hotspotNumber?'<p class="ec-asset-section">Mục: <strong>B01 — Dấu tích còn lại</strong></p>':'')+'<p class="ec-warning">'+(slot.hold?'Đang chờ xác minh tư liệu — chỉ được đề xuất và xem trước, chưa thể xuất bản.':'Bản nháp ảnh — không tự cập nhật Git hoặc xuất bản.')+'</p>'+
       '<details class="ec-asset-advanced ec-asset-panel-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre class="ec-asset-technical-data">'+esc(JSON.stringify({slot_id:slot.id,asset_id:m.asset_id,baseline_asset_id:slot.baseline.asset_id,file_name:m.file_name,version:m.version,rights_status:m.rights_status,provenance_status:m.provenance_status,representation_status:m.representation_status,evidence_impact:m.evidence_impact,gate_codes:slot.record?.gate_reasons||[],upload_manifest:slot.record?.upload_manifest||null,review_status:slot.record?.review_status||'BASELINE'},null,2))+'</pre></details>'+
-      '<div class="ec-asset-input-actions"><label>UPLOAD / REPLACE IMAGE<input id="ec-asset-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><button type="button" id="ec-asset-remove">REMOVE IMAGE</button><button type="button" id="ec-asset-restore">RESTORE BASELINE IMAGE</button></div>'+
-      '<label>Asset type<select id="ec-asset-type">'+optionHtml(types,m.asset_type)+'</select></label>'+
-      '<label>Caption<textarea id="ec-asset-caption" rows="3">'+esc(m.caption)+'</textarea></label>'+
-      '<label>Credit<input id="ec-asset-credit" value="'+esc(m.credit)+'"></label>'+
-      '<label>Alt text<input id="ec-asset-alt" value="'+esc(m.alt_text)+'"></label>'+
-      '<label><input id="ec-asset-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Decorative (no informational alt)</label>'+
-      '<label>Source / context<input id="ec-asset-source" value="'+esc(m.source)+'"></label>'+
-      '<label>Rights<select id="ec-asset-rights">'+optionHtml(rights,m.rights_status)+'</select></label>'+
-      '<label>Provenance<select id="ec-asset-provenance">'+optionHtml(provenances,m.provenance_status)+'</select></label>'+
-      '<label>Representation label<select id="ec-asset-representation">'+optionHtml(representations,m.representation_status)+'</select></label>'+
-      '<label>Evidence impact<select id="ec-asset-impact">'+optionHtml(impacts,m.evidence_impact)+'</select></label>'+
-      '<label>Change reason<textarea id="ec-asset-reason" rows="2">'+esc(m.change_reason)+'</textarea></label>'+
-      '<div id="ec-asset-file-status" role="status" aria-live="polite">File: '+esc(m.file_name||'chưa có')+'</div>'+
-      '<p class="ec-small">Source IDs / provenance IDs, evidence level, approval/verification status không được thay qua editor.</p>'+
-      '<div class="ec-asset-input-actions"><button type="button" id="ec-asset-save">SAVE ASSET DRAFT</button><button type="button" id="ec-asset-cancel">CANCEL</button></div>';
+      '<div class="ec-asset-input-actions"><label>TẢI LÊN / THAY ẢNH<input id="ec-asset-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><button type="button" id="ec-asset-remove">GỠ ẢNH</button><button type="button" id="ec-asset-restore">KHÔI PHỤC ẢNH GỐC</button></div>'+
+      '<label>Loại hình ảnh<select id="ec-asset-type">'+optionHtml(types,m.asset_type)+'</select></label>'+
+      '<label>Chú thích ảnh<textarea id="ec-asset-caption" rows="3">'+esc(m.caption)+'</textarea></label>'+
+      '<label>Nguồn / Tác giả<input id="ec-asset-credit" value="'+esc(m.credit)+'"></label>'+
+      '<label>Mô tả ảnh cho người dùng khiếm thị<input id="ec-asset-alt" value="'+esc(m.alt_text)+'"></label>'+
+      '<label><input id="ec-asset-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Ảnh trang trí (không cần mô tả nội dung)</label>'+
+      '<label>Nguồn tư liệu / Bối cảnh<input id="ec-asset-source" value="'+esc(m.source)+'"></label>'+
+      '<label>Quyền sử dụng<select id="ec-asset-rights">'+optionHtml(rights,m.rights_status)+'</select></label>'+
+      '<label>Nguồn gốc tư liệu<select id="ec-asset-provenance">'+optionHtml(provenances,m.provenance_status)+'</select></label>'+
+      '<label>Nhãn hiển thị<select id="ec-asset-representation">'+optionHtml(representations,m.representation_status)+'</select></label>'+
+      '<label>Mức ảnh hưởng đến bằng chứng<select id="ec-asset-impact">'+optionHtml(impacts,m.evidence_impact)+'</select></label>'+
+      '<label>Lý do thay đổi<textarea id="ec-asset-reason" rows="2">'+esc(m.change_reason)+'</textarea></label>'+
+      '<div id="ec-asset-file-status" role="status" aria-live="polite">Ảnh hiện tại: '+(m.file_name?'Đã có file':'Chưa có file')+'</div>'+
+      '<p class="ec-small">Mã nguồn tư liệu, mức bằng chứng và trạng thái phê duyệt không được thay đổi tại đây.</p>'+
+      '<div class="ec-asset-input-actions"><button type="button" id="ec-asset-save">LƯU BẢN NHÁP ẢNH</button><button type="button" id="ec-asset-cancel">HỦY</button></div>';
     panel.hidden=false;
     const q=id=>panel.querySelector('#'+id);
     let candidateFile=null,candidateUrl=null,removed=!!m.removed;
@@ -311,12 +383,12 @@
         ev.target.value='';return;
       }
       candidateFile=file;candidateUrl=URL.createObjectURL(file);removed=false;
-      q('ec-asset-file-status').textContent='DRAFT · '+file.name+' · '+file.type+' · '+file.size+' bytes';
+      q('ec-asset-file-status').textContent='Đã chọn ảnh bản nháp ('+Math.round(file.size/1024)+' KB).';
     });
-    q('ec-asset-remove').addEventListener('click',()=>{removed=true;candidateFile=null;candidateUrl=null;q('ec-asset-file-status').textContent='REMOVED IN DRAFT';});
+    q('ec-asset-remove').addEventListener('click',()=>{removed=true;candidateFile=null;candidateUrl=null;q('ec-asset-file-status').textContent='Đã gỡ ảnh trong bản nháp';});
     q('ec-asset-restore').addEventListener('click',()=>{
       undo.push(snapshot());window.__editorialLastEdit='asset';restoreSnapshot(undo[undo.length-1].map(x=>x.id===slot.id?{...x,record:null,file:null,url:null}:x));
-      panel.hidden=true;active=null;notify('Đã restore baseline asset '+slot.id+' trong draft.');
+      panel.hidden=true;active=null;notify('Đã khôi phục ảnh gốc trong bản nháp'+(slot.hotspotNumber?' tại điểm tương tác '+Number(slot.hotspotNumber):'')+'.');
     });
     q('ec-asset-cancel').addEventListener('click',()=>{panel.hidden=true;active=null;});
     q('ec-asset-save').addEventListener('click',()=>{
