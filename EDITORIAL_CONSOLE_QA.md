@@ -67,3 +67,46 @@ The JSON export is a proposal, not an approval or Git patch. An external control
 - Query-parameter editorial modes are UI/workflow simulations until backed by approved release metadata.
 - No hosted review-branch preview is provisioned by this change; local checkout or controlled preview deployment is required.
 - Asset replacement is classification-ready in the JSON schema, not a functional asset uploader.
+
+
+## v0.1 revision — TEXT + IMAGE editing (Master Control handoff)
+
+The Console is now an EDITORIAL CONTENT EDITOR. asset-editor.js is loaded only with ?edit=1, after editor.js. Visual slots are stable IDs defined in the editor extension. No reader-facing public markup was changed to add editor slots. B04 has no editable asset slot.
+
+### Asset slots and baseline behavior
+
+HERO_IMAGE; B01_REMAINS_VISUAL; B03_PLAN_VISUAL; B05_MODEL_A; B05_MODEL_B; B05_MODEL_C; B06_ROOF_VISUAL; B07_PRESERVATION_SCHEMATIC; B08_LEGAL_VISUAL; B09_CLOSURE_VISUAL.
+
+Existing figures/interactive graphics are preserved. Editor-only visual preview blocks are added inside the corresponding section. Slots with no existing image use editor-only virtual placeholders. These are proposals, not final image references. The B01 hotspots, B03 measurement diagram and B05 tabs must remain operable.
+
+### Additional browser QA required
+
+- [ ] Edit Mode shows EDIT ASSET button in toolbar and per-slot buttons; public mode shows none.
+- [ ] Hero: upload JPEG, PNG, WebP or AVIF (max 15 MB), preview within hero frame without forced crop, show draft status, filename, type, caption, credit, alt.
+- [ ] B01: image preview must not disable three hotspot buttons or change their Level 1/2 claims.
+- [ ] B03: plan buttons continue to work; visual proposal does not overwrite measured geometry.
+- [ ] B05: A/B/C tabs remain usable; each model slot has HOLD badge and draft-only preview; claim status unchanged.
+- [ ] B06: reconstruction requires RECONSTRUCTION_HYPOTHESIS; cannot downgrade below EVIDENCE_AFFECTING.
+- [ ] B08: visual proposal must remain HOLD_FOR_RESEARCH and cannot downgrade CLAIM_AFFECTING impact.
+- [ ] B04: no asset edit control; Evidence Tower stays structurally locked.
+- [ ] Upload / Replace / Remove / Restore baseline image, then Undo each change.
+- [ ] Metadata editing: caption, credit, alt, source, asset type, representation, rights, provenance, evidence impact and reason.
+- [ ] Rights NOT_CHECKED/UNKNOWN/RESTRICTED or provenance MISSING/PARTIAL remain non-final; PLACEHOLDER remains non-final.
+- [ ] Missing alt for non-decorative image, duplicate caption/alt, archival missing source/context and reconstruction without uncertainty label are flagged.
+- [ ] SAVE DRAFT persists metadata across reload, but binary preview does NOT persist; UI shows reselect/upload warning.
+- [ ] COMPARE includes text and image records; EXPORT JSON includes both, asset upload manifest and selective QC.
+- [ ] Exported image binary is NOT embedded in JSON; controlled upload required before Git apply.
+- [ ] In post-publish mode, image updates have POST_PUBLISH_ASSET_UPDATE and reason is required.
+- [ ] Keyboard Tab/Enter/Escape, focus trapping in asset panel and mobile file-picker / metadata controls.
+- [ ] Responsive: 1440x900, 1280x800, 390x844, 360x800; contain preview, caption wrapping, no overflow.
+- [ ] Browser console has no uncaught exceptions; no Git credentials or Git API calls.
+- [ ] Verify text Save/Undo/Restore/Compare/Export still work after an asset change.
+
+### Additional limitations and gating
+
+- No image file is persisted across reload. localStorage contains metadata and an upload manifest only.
+- No automatic asset apply, rights verification, provenance validation, image optimization, DAM, crop tool or Git commit.
+- A change set is a proposal, never a publishable asset or approval. publish_eligible is always false pending controlled Git upload and reviewer gates.
+- Baseline images in the prototype are mostly CSS illustrations or schematic elements, not standalone file assets. Replacement previews are editor-only overlays; controlled apply must update the actual HTML/CSS/JS reference.
+- The browser cannot verify legal rights or provenance claims typed by editors. Reviewer verification is mandatory.
+- Browser interaction QA remains PENDING until performed on a locally served review branch.
