@@ -338,5 +338,17 @@
   </div>
 </footer>
 <script src="app.js" defer></script>
+<script>
+  // Public mode does not load the editorial UI.
+  if (new URLSearchParams(window.location.search).get('edit') === '1') {
+    const style = document.createElement('link');
+    style.rel = 'stylesheet';
+    style.href = 'editor.css';
+    document.head.appendChild(style);
+    const editor = document.createElement('script');
+    editor.src = 'editor.js';
+    document.body.appendChild(editor);
+  }
+</script>
 </body>
 </html>
