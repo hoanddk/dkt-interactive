@@ -509,6 +509,7 @@ test('41 Hotspot minimum evidence impact remains enforced; public mode stays cle
   expect(rec.evidence_impact).toBe('EVIDENCE_SUPPORTING');
   expect(rec.new.evidence_level).toBe('2');
   expect(rec.publish_eligible).toBe(false);
+  await action(page,'save').click(); // Public-mode regression without an unrelated unsaved-change dialog.
   await page.goto('/');
   await expect(page.locator('.ec-hotspot-asset-group')).toHaveCount(0);
   await expect(page.locator('.ec-hotspot-context-action')).toHaveCount(0);
