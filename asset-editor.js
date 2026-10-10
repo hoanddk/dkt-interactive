@@ -13,6 +13,11 @@
   const provenances = ['MISSING','PARTIAL','COMPLETE'];
   const representations = ['EDITORIAL_ILLUSTRATION','NOT_CURRENT_PHOTO','RECONSTRUCTION_HYPOTHESIS','SCHEMATIC_NOT_TO_SCALE','DOCUMENTARY_PHOTO','ARCHIVAL_WITH_CONTEXT','PLACEHOLDER_NOT_FINAL'];
   const impacts = ['PRESENTATION_ONLY','EVIDENCE_SUPPORTING','EVIDENCE_AFFECTING','CLAIM_AFFECTING'];
+  const strongestImpact = (slot,meta) => {
+    const min = slot.baseline.evidence_impact;
+    const fromType = meta.asset_type==='RECONSTRUCTION'?'EVIDENCE_AFFECTING':'PRESENTATION_ONLY';
+    return [meta.evidence_impact,min,fromType].reduce((a,b)=>impacts.indexOf(a)>=impacts.indexOf(b)?a:b);
+  };
   const mapping = [
     ['HERO_IMAGE','s00','.asset-frame','EDITORIAL_GRAPHIC','EDITORIAL_ILLUSTRATION','PRESENTATION_ONLY',false],
     ['B01_REMAINS_VISUAL','remains','.hotspot-stage','EDITORIAL_GRAPHIC','NOT_CURRENT_PHOTO','EVIDENCE_SUPPORTING',false],
@@ -131,6 +136,7 @@
     const oldId=slot.baseline.asset_id;
     const newId=meta.removed?null:(file?slot.id+'_DRAFT_'+Date.now():prior?.new_asset_id||oldId);
     const m={...meta,slot_id:slot.id,file_name:fileName,asset_id:newId,version:slot.baseline.version+1,editorial_status:'DRAFT'};
+    m.evidence_impact=strongestImpact(slot,m);
     const binaryRequired=!!file || !!(prior?.binaryRequired && !meta.removed);
     const gateReasons=gate(m,slot.hold,!!file || !binaryRequired);
     const type=meta.removed?'ASSET_CHANGE':file?'IMAGE_REPLACE':'ASSET_CHANGE';
@@ -183,9 +189,11 @@
   const refresh = () => {
     const btn=toolbar.querySelector('[data-ec-action="asset"]');
     if(btn)btn.textContent='EDIT ASSET ('+changed().length+')';
+    if (typeof window.__editorialRefresh === 'function') window.__editorialRefresh();
   };
   const optionHtml = (values,selected) => values.map(v=>'<option value="'+esc(v)+'"'+(v===selected?' selected':'')+'>'+esc(v)+'</option>').join('');
   const open = slot => {
+    if (!slot) return;
     active=slot;
     const m=slot.record?.new || slot.baseline;
     const title=panel.querySelector('#ec-panel-title');
@@ -222,7 +230,7 @@
     });
     q('ec-asset-remove').addEventListener('click',()=>{removed=true;candidateFile=null;candidateUrl=null;q('ec-asset-file-status').textContent='REMOVED IN DRAFT';});
     q('ec-asset-restore').addEventListener('click',()=>{
-      undo.push(snapshot());restoreSnapshot(undo[undo.length-1].map(x=>x.id===slot.id?{...x,record:null,file:null,url:null}:x));
+      undo.push(snapshot());window.__editorialLastEdit='asset';restoreSnapshot(undo[undo.length-1].map(x=>x.id===slot.id?{...x,record:null,file:null,url:null}:x));
       panel.hidden=true;active=null;notify('Đã restore baseline asset '+slot.id+' trong draft.');
     });
     q('ec-asset-cancel').addEventListener('click',()=>{panel.hidden=true;active=null;});
@@ -240,6 +248,7 @@
       else {
         undo.push(snapshot());
         slot.record=makeRecord(slot,newMeta,nextFile,nextUrl);
+        window.__editorialLastEdit = 'asset';
         slot.file=nextFile;slot.url=nextUrl;
       }
       render(slot);refresh();panel.hidden=true;active=null;
@@ -247,6 +256,15 @@
     });
     q('ec-asset-file').focus();
   };
+  document.addEventListener('keydown', event => {
+    if (panel.hidden || !panel.querySelector('#ec-asset-file')) return;
+    if (event.key==='Escape') {event.preventDefault();panel.hidden=true;active=null;return;}
+    if (event.key!=='Tab') return;
+    const focusable=Array.from(panel.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])'));
+    if (!focusable.length) return;
+    if (event.shiftKey && document.activeElement===focusable[0]) {event.preventDefault();focusable[focusable.length-1].focus();}
+    else if (!event.shiftKey && document.activeElement===focusable[focusable.length-1]) {event.preventDefault();focusable[0].focus();}
+  });
   const button=document.createElement('button');
   button.type='button';button.dataset.ecAction='asset';button.textContent='EDIT ASSET';
   button.addEventListener('click',()=>open(slots.get(active?.id)||slots.get('HERO_IMAGE')));
@@ -293,7 +311,7 @@
   if(stale)notify('Asset draft cũ không tương thích, không tự áp dụng.');
   refresh();
   window.__editorialAssets={
-    getChanges:exportRecords,hasChanges:()=>changed().length>0,
+    getChanges:exportRecords,hasChanges:()=>changed().length>0,canUndo:()=>undo.length>0,
     isDirty:()=>fingerprint()!==lastSaved,
     saveDraft,restoreAll,undo:undoLast,compareHtml,
     slots:Array.from(slots.keys())
