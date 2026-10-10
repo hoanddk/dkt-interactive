@@ -1,0 +1,12 @@
+{
+  "name": "dkt-interactive-runtime-qa",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "qa:browser": "playwright test",
+    "qa:browser:list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
+}
