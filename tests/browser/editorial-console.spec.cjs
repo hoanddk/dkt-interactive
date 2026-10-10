@@ -354,7 +354,7 @@ test('33 Asset default summary hides raw IDs, gate codes and technical manifest'
   await expect(display.locator('.ec-preview-image')).toBeVisible();
   await expect(display.locator('.ec-asset-caption')).toContainText('Chú thích ảnh QA');
   await expect(display.locator('.ec-asset-credit')).toContainText('Tác giả QA');
-  await expect(display.locator('.ec-asset-status')).toContainText('Not Final');
+  await expect(display.locator('.ec-asset-status')).toContainText('Chưa đủ điều kiện');
   await expect(display.locator('.ec-asset-warning')).toContainText('Chưa xác nhận quyền sử dụng');
   await expect(display.locator('.ec-asset-warning')).not.toContainText('RIGHTS_NOT_CLEARED');
   await expect(display.locator('.ec-asset-compact')).toContainText('Đồ họa biên tập');
