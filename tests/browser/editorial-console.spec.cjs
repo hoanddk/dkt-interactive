@@ -24,7 +24,7 @@ async function editText(page, text) {
 async function openAsset(page, id) {
   await assetButton(page, id).click();
   await expect(page.locator('#editor-panel')).toBeVisible();
-  await expect(page.locator('#ec-panel-title')).toContainText(id);
+  await expect(page.locator('#ec-panel-title')).toContainText('CHỈNH SỬA ẢNH');
 }
 async function saveAsset(page, fields = {}) {
   if (fields.file) await page.locator('#ec-asset-file').setInputFiles(file(fields.file));
@@ -214,7 +214,7 @@ test('16 B04 Evidence Tower structurally locked in Edit Mode', async ({ page }) 
 test('17 B05 and B08 visual proposals retain HOLD_FOR_RESEARCH', async ({ page }) => {
   for(const id of ['B05_MODEL_A','B08_LEGAL_VISUAL']){
     await openAsset(page,id);
-    await expect(page.locator('#ec-panel-body')).toContainText('HOLD_FOR_RESEARCH');
+    await expect(page.locator('#ec-panel-body')).toContainText('Đang chờ xác minh tư liệu');
     await saveAsset(page,{caption:'QA hold proposal',alt:'QA hold',reason:'QA hold'});
     const r=(await getAssets(page)).find(x=>x.slot_id===id);
     expect(r.review_status).toBe('HOLD_FOR_RESEARCH');
@@ -401,7 +401,7 @@ test('35 Rights/provenance and accessibility warnings are editorial language', a
 
 test('36 Edit Asset panel keeps full fields and collapses technical details', async ({ page }) => {
   await openAsset(page,'B05_MODEL_A');
-  await expect(page.locator('#ec-panel-body')).toContainText('HOLD_FOR_RESEARCH');
+  await expect(page.locator('#ec-panel-body')).toContainText('Đang chờ xác minh tư liệu');
   for(const id of ['ec-asset-file','ec-asset-caption','ec-asset-credit','ec-asset-alt','ec-asset-source','ec-asset-rights','ec-asset-provenance','ec-asset-representation','ec-asset-impact','ec-asset-reason']){
     await expect(page.locator('#'+id)).toBeAttached();
   }
