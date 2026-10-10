@@ -83,7 +83,7 @@
     const ctrl = document.createElement('button');
     ctrl.type = 'button';
     ctrl.className = 'ec-asset-control';
-    ctrl.textContent = 'EDIT ASSET · '+id+(hold?' · HOLD_FOR_RESEARCH':'');
+    ctrl.textContent = hold?'CHỈNH ẢNH · Chờ xác minh':'CHỈNH ẢNH';
     ctrl.setAttribute('aria-label','Edit visual asset '+id+(hold?' evidence-sensitive':''));
     ctrl.addEventListener('click', e => {e.preventDefault();e.stopPropagation();open(slot);});
     slot.ctrl = ctrl;
@@ -173,8 +173,8 @@
     BINARY_RESELECT_OR_CONTROLLED_UPLOAD_REQUIRED:'Cần chọn lại file ảnh để hoàn tất bàn giao'
   };
   const humanGate = code => gateLabels[code] || 'Cần kiểm tra bổ sung trong chi tiết kỹ thuật';
-  const readiness = (rec,hold) => hold ? 'Hold · Chờ xác minh' :
-    rec.gate_reasons.length ? 'Not Final · Chưa đủ điều kiện' : 'Ready for Review · Chờ duyệt';
+  const readiness = (rec,hold) => hold ? 'Draft · Hold · Chờ xác minh' :
+    rec.gate_reasons.length ? 'Draft · Not Final · Chưa đủ điều kiện' : 'Draft · Ready for Review · Chờ duyệt';
   const rightsLabel = value => value==='CLEARED'?'Đã xác nhận':
     value==='RESTRICTED'?'Bị hạn chế':'Chưa kiểm tra';
   const provenanceLabel = value => value==='COMPLETE'?'Đầy đủ':
@@ -282,9 +282,9 @@
     active=slot;
     const m=slot.record?.new || slot.baseline;
     const title=panel.querySelector('#ec-panel-title');
-    title.textContent='EDIT ASSET · '+slot.id;
+    title.textContent='CHỈNH SỬA ẢNH · '+(slot.hold?'Chờ xác minh':'Bản nháp');
     const body=panel.querySelector('#ec-panel-body');
-    body.innerHTML='<p class="ec-warning">'+(slot.hold?'EVIDENCE-SENSITIVE / HOLD_FOR_RESEARCH — preview/proposal only.':'Asset draft — không tự cập nhật Git hoặc publish.')+'</p>'+
+    body.innerHTML='<p class="ec-warning">'+(slot.hold?'Đang chờ xác minh tư liệu — chỉ được đề xuất và xem trước, chưa thể xuất bản.':'Bản nháp ảnh — không tự cập nhật Git hoặc xuất bản.')+'</p>'+
       '<details class="ec-asset-advanced ec-asset-panel-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre class="ec-asset-technical-data">'+esc(JSON.stringify({slot_id:slot.id,asset_id:m.asset_id,baseline_asset_id:slot.baseline.asset_id,file_name:m.file_name,version:m.version,rights_status:m.rights_status,provenance_status:m.provenance_status,representation_status:m.representation_status,evidence_impact:m.evidence_impact,gate_codes:slot.record?.gate_reasons||[],upload_manifest:slot.record?.upload_manifest||null,review_status:slot.record?.review_status||'BASELINE'},null,2))+'</pre></details>'+
       '<div class="ec-asset-input-actions"><label>UPLOAD / REPLACE IMAGE<input id="ec-asset-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><button type="button" id="ec-asset-remove">REMOVE IMAGE</button><button type="button" id="ec-asset-restore">RESTORE BASELINE IMAGE</button></div>'+
       '<label>Asset type<select id="ec-asset-type">'+optionHtml(types,m.asset_type)+'</select></label>'+
