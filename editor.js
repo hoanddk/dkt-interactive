@@ -10,6 +10,8 @@
   const sourceBranch = 'editorial/round-2a-v0.1.5';
   const sourcePath = 'index.html';
   const storageKey = 'dkt:editorial-console:v0.1:' + sourceBranch;
+  const historyKey = storageKey + ':saved-revisions';
+  let localHistory = [];
   const contentSelector = 'h1,h2,h3,p,figcaption,li,.badge,.status-badge,.placeholder-label,.plan-shape span,.representation-banner';
   const main = document.querySelector('main');
   if (!main) return;
@@ -243,6 +245,9 @@
       baselineId, savedAt: time(), editorialMode: mode, changes: recordList() };
     try {
       localStorage.setItem(storageKey, JSON.stringify(payload));
+      localHistory.push({ savedAt: payload.savedAt, editorialMode: mode, baselineId, changes: recordList() });
+      localHistory = localHistory.slice(-25);
+      localStorage.setItem(historyKey, JSON.stringify(localHistory));
       savedFingerprint = fingerprint();
       refresh();
       showNotice('Đã lưu bản nháp trên trình duyệt này. Git vẫn là source of truth.');
@@ -313,6 +318,7 @@
       source: { repository: 'hoanddk/dkt-interactive', branch: sourceBranch, path: sourcePath,
         baselineId, contentAuthority: 'GIT_REPOSITORY', commitSha: null },
       changeSetStatus: 'PENDING_GIT_REVIEW',
+      localSavedRevisionHistory: localHistory,
       postPublishUpdate: post ? { type: 'POST_PUBLISH_UPDATE', status: 'PENDING_REVIEW', publishedVersion: null } : null,
       changes,
       review: { approved: false, mergeAllowed: false, publishAllowed: false,
@@ -364,6 +370,11 @@
     if (fingerprint() !== savedFingerprint) { event.preventDefault(); event.returnValue = ''; }
   });
   try {
+    const savedHistory = localStorage.getItem(historyKey);
+    if (savedHistory) {
+      const parsedHistory = JSON.parse(savedHistory);
+      if (Array.isArray(parsedHistory)) localHistory = parsedHistory.slice(-25);
+    }
     const raw = localStorage.getItem(storageKey);
     if (raw) {
       const draft = JSON.parse(raw);
