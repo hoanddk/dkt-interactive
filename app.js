@@ -4,6 +4,51 @@
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
+  // Public copy cleanup only: keep evidence state/logic intact while removing
+  // internal level/model terminology from the reader-facing DOM and a11y copy.
+  const cleanReaderPresentation = () => {
+    const replacements = [
+      ['MÔ HÌNH BIÊN TẬP VỀ MỨC BẰNG CHỨNG', 'CÁCH ĐỌC MỨC ĐỘ CHẮC CHẮN CỦA THÔNG TIN'],
+      ['MỨC BẰNG CHỨNG 1 — DẤU TÍCH ĐÁ CÒN TẠI CHỖ', 'DẤU TÍCH ĐÁ CÒN TẠI CHỖ'],
+      ['MỨC BẰNG CHỨNG 4 — SUY DỰNG THEO BẰNG CHỨNG HIỆN CÓ', 'GIẢ THUYẾT SUY DỰNG THEO BẰNG CHỨNG HIỆN CÓ'],
+      ['MỨC BẰNG CHỨNG 1', 'LỚP THÔNG TIN 1'],
+      ['MỨC BẰNG CHỨNG 2', 'LỚP THÔNG TIN 2'],
+      ['MỨC BẰNG CHỨNG 3', 'LỚP THÔNG TIN 3'],
+      ['MỨC BẰNG CHỨNG 4', 'LỚP THÔNG TIN 4'],
+      ['MỨC BẰNG CHỨNG 5', 'LỚP THÔNG TIN 5'],
+      ['Nền/móng thuộc Mức bằng chứng 2.', 'Nền/móng thuộc nhóm dữ liệu khảo cổ đã được đo đạc.'],
+      ['mức bằng chứng tương ứng', 'nhóm dữ liệu tương ứng'],
+      ['Mức 4 luôn dùng nét đứt + nhãn SUY DỰNG. Mức 5 để trống hình học cụ thể.', 'Phần suy dựng luôn dùng nét đứt + nhãn SUY DỰNG. Phần chưa xác định để trống hình học cụ thể.'],
+      ['Mức 4', 'Lớp suy dựng'],
+      ['mức 5', 'phần chưa xác định'],
+      ['Mức bằng chứng 2', 'dữ liệu khảo cổ'],
+      ['Mức 2', 'lớp dữ liệu khảo cổ'],
+      ['Mức 1', 'lớp dấu tích trực tiếp']
+    ];
+    const roots = ['#remains', '#evidence-tower', '#roof-case'];
+    roots.forEach(selector => {
+      const root = document.querySelector(selector);
+      if (!root) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        let text = node.nodeValue;
+        replacements.forEach(([from,to]) => { text = text.split(from).join(to); });
+        node.nodeValue = text;
+      });
+      root.querySelectorAll('[aria-label],[aria-description]').forEach(el => {
+        ['aria-label','aria-description'].forEach(attr => {
+          if (!el.hasAttribute(attr)) return;
+          let value = el.getAttribute(attr);
+          replacements.forEach(([from,to]) => { value = value.split(from).join(to); });
+          el.setAttribute(attr,value);
+        });
+      });
+    });
+  };
+  cleanReaderPresentation();
+
   // B04 evidence tower — reader-facing terms only.
   const towerStates = {
     1:{title:'Lớp 1 — Còn tại chỗ',copy:'Những bộ phận vẫn tồn tại tại di tích và có thể quan sát trực tiếp.',insight:'Đây là lớp thông tin gần đối tượng nhất.',next:'Thêm lớp 2'},
