@@ -347,7 +347,12 @@
     document.head.appendChild(style);
     const editor = document.createElement('script');
     editor.src = 'editor.js';
+    editor.async = false;
     document.body.appendChild(editor);
+    const assets = document.createElement('script');
+    assets.src = 'asset-editor.js';
+    assets.async = false;
+    document.body.appendChild(assets);
   }
 </script>
 </body>
