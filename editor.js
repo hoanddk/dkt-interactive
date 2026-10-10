@@ -59,7 +59,9 @@
     const path = selectorFor(el, section);
     const id = section.id + ':' + hash(path);
     const rich = Array.from(el.children).length > 0;
-    const policy = rich ? 'LOCKED' : policyFor(el, section);
+    const basePolicy = policyFor(el, section);
+    // Rich text can be proposed in HOLD sections without mutating its markup.
+    const policy = rich && basePolicy !== 'HOLD_FOR_RESEARCH' ? 'LOCKED' : basePolicy;
     if (fields.has(id)) return;
     const field = { id, path, section: section.dataset.block || section.dataset.screen || section.id,
       element: el.tagName.toLowerCase(), baseline: textValue(el), policy, node: el };
