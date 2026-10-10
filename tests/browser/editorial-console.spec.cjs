@@ -186,7 +186,7 @@ test('14 Metadata round-trip across Save Draft and reload', async ({ page }) => 
   await expect(page.locator('#ec-asset-rights')).toHaveValue('CLEARED');
   await expect(page.locator('#ec-asset-provenance')).toHaveValue('COMPLETE');
   await page.locator('#ec-asset-cancel').click();
-  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-display')).toContainText('Chưa có binary');
+  await expect(slot(page,'HERO_IMAGE').locator('.ec-asset-display')).toContainText('Tệp ảnh chưa được lưu sau khi tải lại');
 });
 
 test('15 Unified Export contains image upload manifest and text change', async ({ page }) => {
