@@ -184,6 +184,19 @@
     active.click();return {items};
   };
   baseline.interactive.HISTORY=captureHistory();state.interactive.HISTORY=clone(baseline.interactive.HISTORY);
+  const captureB08=()=>{
+    const buttons=[...document.querySelectorAll('#control-gates [data-verb]')],box=document.querySelector('#verb-info');
+    if(!buttons.length||!box)return {items:[]};
+    const original=box.innerHTML;
+    const items=buttons.map((btn,i)=>{
+      btn.click();return {key:btn.dataset.verb,number:i+1,label:btn.textContent.trim(),
+        title:box.querySelector('h3')?.textContent.trim()||'',
+        copy:box.querySelector('p')?.textContent.trim()||'',timestamp:null,review_status:'HOLD_FOR_RESEARCH'};
+    });
+    box.innerHTML=original;return {items};
+  };
+  baseline.interactive.B08=captureB08();state.interactive.B08=clone(baseline.interactive.B08);
+
 
 
   const heroCaption=document.querySelector('#s00 figcaption')?.textContent.trim()||'';
@@ -242,6 +255,12 @@
       '<p><strong>Điều giúp hiểu:</strong> <span data-ec-copy="HISTORY:intro:'+data.items.indexOf(item)+'">'+esc(item.intro)+'</span></p>'+
       '<p><strong>Không suy quá:</strong> <span data-ec-copy="HISTORY:limit:'+data.items.indexOf(item)+'">'+esc(item.limit)+'</span></p>';
   };
+  const applyB08=(selectedKey=null)=>{
+    const data=state.interactive.B08;if(!data?.items?.length)return;
+    data.items.forEach(item=>{const btn=[...document.querySelectorAll('#control-gates [data-verb]')].find(b=>b.dataset.verb===item.key);if(btn)btn.textContent=item.label;});
+    const item=data.items.find(x=>x.key===selectedKey),box=document.querySelector('#verb-info');
+    if(item&&box)box.innerHTML='<h3 data-ec-copy="B08:title:'+data.items.indexOf(item)+'">'+esc(item.title)+'</h3><p data-ec-copy="B08:copy:'+data.items.indexOf(item)+'">'+esc(item.copy)+'</p>';
+  };
   const renderB01Card=(idx)=>{
     const card=document.querySelector('#hotspot-card'), item=state.interactive.B01?.items?.[idx]; if(!card||!item)return;
     card.innerHTML='<h3 data-ec-copy="B01:title:'+idx+'">'+esc(item.title)+'</h3><p><strong>'+esc(item.known_label)+'</strong> <span data-ec-copy="B01:known:'+idx+'">'+esc(item.known)+'</span></p><p><strong>'+esc(item.limit_label)+'</strong> <span data-ec-copy="B01:limit:'+idx+'">'+esc(item.limit)+'</span></p>'+(item.note?'<p class="small" data-ec-copy="B01:note:'+idx+'">'+esc(item.note)+'</p>':'')+'<div class="ec-hotspot-media-slot" data-slot="'+esc(item.id)+'"></div>';
@@ -299,7 +318,7 @@
   };
   const renderPublication=()=>{document.title=state.publication.title||baseline.publication.title;renderMasthead(state.publication);renderFooter();};
 
-  const renderAll=()=>{ if(activeText)return;applyText(); applyB03(); applyB06(); applyHistory(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
+  const renderAll=()=>{ if(activeText)return;applyText(); applyB03(); applyB06(); applyHistory(); applyB08(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
 
   const closePanel=()=>{ panel.hidden=true; panelOpen=false; if(lastFocused&&document.contains(lastFocused))lastFocused.focus(); };
   const openPanel=(title,html)=>{ lastFocused=document.activeElement; panel.querySelector('#ec-panel-title').textContent=title; panelBody.innerHTML=html; panel.hidden=false; panelOpen=true; panel.querySelector('#ec-close').focus(); };
@@ -310,6 +329,7 @@
     if(!cleaned||cleaned===field.baseline) delete state.text[field.id]; else state.text[field.id]={fieldId:field.id,path:field.path,section:field.section,before:field.baseline,after:cleaned,policy:field.policy,timestamp:now(),reason,previewOnly:field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED'};
     if(field.node.matches('#s00 h1')) state.publication.title=cleaned||field.baseline;
     if(field.node.matches('#s00 .dek')) state.publication.sapo=cleaned||field.baseline;
+    if(field.node.matches('#control-gates [data-verb]')){const item=state.interactive.B08?.items?.find(x=>x.key===field.node.dataset.verb);if(item){item.label=cleaned||field.baseline;item.timestamp=now();}}
     if(field.node.matches('.layer-stack .layer')){
       const item=state.interactive.HISTORY?.items?.find(x=>x.key===field.node.dataset.layer);
       if(item){item.label=cleaned||field.baseline;item.timestamp=now();}
@@ -362,6 +382,7 @@
     if(kind==='B01')renderB01Card(index);
     if(kind==='B06')applyB06(item.key);
     if(kind==='HISTORY')applyHistory(item.key);
+    if(kind==='B08')applyB08(item.key);
     refresh();
   };
   const openMappedCopy=(kind,key,index=0,node=null)=>{
@@ -644,6 +665,7 @@
   document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);}))); 
   document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB06(btn.dataset.reason))));
   document.querySelectorAll('.layer-stack .layer').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyHistory(btn.dataset.layer))));
+  document.querySelectorAll('#control-gates [data-verb]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB08(btn.dataset.verb))));
 
 
   document.querySelector('.site-header strong')?.addEventListener('click',e=>{openPublicationCopy('masthead',e.currentTarget);e.currentTarget.focus();});
