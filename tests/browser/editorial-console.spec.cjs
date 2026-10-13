@@ -470,3 +470,94 @@ test('46 HOLD image remains editorial-only in reader preview',async ({page})=>{
   await action(page,'save').click();await page.goto('/?preview=1');
   await expect(page.locator('#model-a .ec-preview-image')).toHaveCount(0);
 });
+
+test('47 caret stays in native editable element and accepts selection',async ({page})=>{
+  const h=page.locator('#s00 h1');await h.click({position:{x:90,y:15}});
+  await expect(h).toHaveAttribute('contenteditable','plaintext-only');
+  await h.press('Home');await h.press('Shift+ArrowRight');await h.press('Shift+ArrowRight');
+  const selection=await page.evaluate(()=>({text:window.getSelection().toString(),active:document.activeElement?.tagName}));
+  expect(selection.text.length).toBeGreaterThan(0);expect(selection.active).toBe('H1');
+  await h.press('Escape');
+});
+test('48 native editing supports Backspace, paste and Unicode Vietnamese',async ({page})=>{
+  const h=page.locator('#s00 h1');await h.click();await h.fill('Điện Kính Thiên');
+  await h.press('End');await h.press('Backspace');await h.type('n');
+  await h.press('Tab');await expect(h).toHaveText('Điện Kính Thiên');
+});
+test('49 media survives Edit Preview Edit and browser reload',async ({page})=>{
+  await openHeroMedia(page);await page.locator('#ec-media-file').setInputFiles(file('persistent.png'));
+  await page.locator('#ec-media-caption').fill('Ảnh tồn tại sau tải lại');
+  await page.locator('#ec-media-save').click();await expect(page.locator('#editor-panel')).toBeHidden();
+  await finishDraftSave(page);
+  await page.goto('/?preview=1');await expect(page.locator('#s00 .ec-slot-media img')).toBeVisible();
+  await page.goto('/?edit=1');await expect(page.locator('#s00 .ec-slot-media img')).toBeVisible();
+  await page.reload();await expect(page.locator('#s00 .ec-slot-media img')).toBeVisible();
+  await expect(page.locator('#ec-notice')).not.toContainText('cần chọn lại');
+});
+test('50 large image binary is stored without dataURL size limit',async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-file').setInputFiles(file('large.png','image/png',Buffer.concat([PNG,Buffer.alloc(1100000)])));
+  await page.locator('#ec-media-save').click();await expect(page.locator('#editor-panel')).toBeHidden();
+  await finishDraftSave(page);await page.reload();
+  const binary=await page.evaluate(()=>window.__dktMediaStore.get('HERO_MEDIA').then(r=>r?.blob?.size||0));
+  expect(binary).toBeGreaterThan(1024*1024);
+});
+test('51 video binary persists across Preview and reload',async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-file').setInputFiles(file('test.mp4','video/mp4',Buffer.alloc(4096)));
+  await page.locator('#ec-media-save').click();await expect(page.locator('#editor-panel')).toBeHidden();
+  await finishDraftSave(page);await page.goto('/?preview=1');
+  await expect(page.locator('#s00 .ec-slot-media video')).toHaveCount(1);
+  await page.reload();await expect(page.locator('#s00 .ec-slot-media video')).toHaveCount(1);
+});
+test('52 B01 main image replaces placeholder without moving hotspots',async ({page})=>{
+  const before=await page.locator('#remains [data-hotspot]').evaluateAll(els=>els.map(x=>x.getAttribute('style')));
+  await page.getByRole('button',{name:'CHỈNH ĐỒ HỌA TƯƠNG TÁC'}).click();
+  await page.locator('[data-b01-file="B01_BACKGROUND"]').setInputFiles(file('main-b01.png'));
+  await page.locator('#b01-save').click();await expect(page.locator('#editor-panel')).toBeHidden();
+  await expect(page.locator('#remains .photo-fallback .ec-slot-media img')).toBeVisible();
+  await expect(page.locator('#remains .placeholder-label')).toBeHidden();
+  const after=await page.locator('#remains [data-hotspot]').evaluateAll(els=>els.map(x=>x.getAttribute('style')));
+  expect(after).toEqual(before);
+});
+test('53 B01 all three hotspot copy and media survive Reader Preview',async ({page})=>{
+  await page.getByRole('button',{name:'CHỈNH ĐỒ HỌA TƯƠNG TÁC'}).click();
+  for(let i=0;i<3;i++){
+    await page.locator('[data-b01-field="'+i+':title"]').fill('QA — Điểm '+(i+1));
+    await page.locator('[data-b01-file="B01_HOTSPOT_0'+(i+1)+'"]').setInputFiles(file('point'+i+'.png'));
+  }
+  await page.locator('#b01-save').click();await finishDraftSave(page);await page.goto('/?preview=1');
+  for(let i=0;i<3;i++){
+    await page.locator('#remains [data-hotspot]').nth(i).click();
+    await expect(page.locator('#hotspot-card h3')).toHaveText('QA — Điểm '+(i+1));
+    await expect(page.locator('#hotspot-card .ec-slot-media img')).toBeVisible();
+  }
+});
+test('54 history labels and reader content persist without changing tab key',async ({page})=>{
+  const tab=page.locator('.layer-stack .layer').nth(0);
+  const key=await tab.getAttribute('data-layer');await tab.dblclick();
+  await tab.fill('QA — Tiền Thăng Long');await tab.press('Tab');
+  await tab.click();
+  await editVisible(page,'#layer-info [data-ec-copy="HISTORY:intro:0"]','QA — Thông tin lịch sử');
+  await finishDraftSave(page);await page.goto('/?preview=1');
+  await expect(page.locator('.layer-stack .layer').first()).toHaveText('QA — Tiền Thăng Long');
+  await page.locator('.layer-stack .layer').first().click();
+  await expect(page.locator('#layer-info')).toContainText('QA — Thông tin lịch sử');
+  expect(await page.locator('.layer-stack .layer').first().getAttribute('data-layer')).toBe(key);
+});
+test('55 Reader Preview excludes editor-only notes and controls',async ({page})=>{
+  await finishDraftSave(page);await page.goto('/?preview=1');
+  await expect(page.locator('.representation-banner')).toBeHidden();
+  await expect(page.locator('.ec-block-warning')).toHaveCount(0);
+  await expect(page.locator('#editor-panel')).toHaveCount(0);
+  const visible=await page.locator('main').innerText();
+  for(const code of ['HOLD_FOR_RESEARCH','NOT_CHECKED','asset_id','CHUỖI LẬP LUẬN BIÊN TẬP'])expect(visible).not.toContain(code);
+});
+test('56 B01 component editor Cancel makes no changes',async ({page})=>{
+  const before=await page.evaluate(()=>JSON.stringify(window.__editorialConsoleV04.state.interactive.B01));
+  await page.getByRole('button',{name:'CHỈNH ĐỒ HỌA TƯƠNG TÁC'}).click();
+  await page.locator('[data-b01-field="0:title"]').fill('KHÔNG LƯU');
+  await page.locator('#b01-cancel').click();
+  const after=await page.evaluate(()=>JSON.stringify(window.__editorialConsoleV04.state.interactive.B01));
+  expect(after).toBe(before);
+});
