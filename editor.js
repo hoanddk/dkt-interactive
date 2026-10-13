@@ -127,7 +127,7 @@
       const rich=el.children.length>0 && !interactiveControl;
       let policy=fieldPolicy(el,section);
       // Rich copy can be edited; interaction elements and evidence widgets remain locked by policy.
-      const field={id,path,node:el,section:section.dataset.block||section.dataset.screen||section.id,baseline:value,policy,interactiveControl};
+      const field={id,path,node:el,section:section.dataset.block||section.dataset.screen||section.id,baseline:value,baselineHtml:el.innerHTML,policy,interactiveControl};
       fields.set(id,field); el.dataset.editorialField=id; el.dataset.editorialPolicy=policy;
       if(policy==='LOCKED'){ el.title='ĐÃ KHÓA — giữ nguyên logic, cấu trúc hoặc trạng thái bằng chứng'; return; }
       el.tabIndex=0;
@@ -204,9 +204,9 @@
     fields.forEach(field=>{
       const rec=state.text[field.id];
       if(field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED'){
-        field.node.textContent=rec?.after||field.baseline; field.node.classList.toggle('ec-proposal',!!rec); return;
+        if(rec)field.node.textContent=rec.after;else field.node.innerHTML=field.baselineHtml; field.node.classList.toggle('ec-proposal',!!rec); return;
       }
-      field.node.textContent=rec?.after||field.baseline; field.node.classList.toggle('ec-changed',!!rec);
+      if(rec)field.node.textContent=rec.after;else field.node.innerHTML=field.baselineHtml; field.node.classList.toggle('ec-changed',!!rec);
     });
     const h1=document.querySelector('#s00 h1'), dek=document.querySelector('#s00 .dek');
     if(h1 && state.publication.title && !Object.values(state.text).some(r=>r.path&&document.querySelector(r.path)===h1)) h1.textContent=state.publication.title;
