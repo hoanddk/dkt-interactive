@@ -411,5 +411,5 @@ test('41 Editor canvas shows one research warning per held block',async ({page})
     await expect(page.locator(section+' .ec-block-warning')).toHaveCount(1);
     await expect(page.locator(section+' [data-editorial-policy="HOLD_FOR_RESEARCH"]')).not.toHaveCount(0);
   }
-  await expect(page.locator('main [data-editorial-policy="HOLD_FOR_RESEARCH"]')).not.toHaveText(/HOLD_FOR_RESEARCH/);
+  const visible=await page.locator('main').innerText();expect(visible).not.toContain('HOLD_FOR_RESEARCH');
 });
