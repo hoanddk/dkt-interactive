@@ -420,7 +420,7 @@ test('41 Editor canvas shows one research warning per held block',async ({page})
 test('42 Headline sapo and paragraph share one copy editor',async ({page})=>{
   await editVisible(page,'#s00 h1','QA — Tiêu đề thống nhất');
   await editVisible(page,'#s00 .dek','QA — Sapo thống nhất');
-  await editVisible(page,'#remains .narrow > p:not(.block-id):not(.small)','QA — Đoạn văn thống nhất');
+  await editVisible(page,'#remains .narrow > p:nth-of-type(2)','QA — Đoạn văn thống nhất');
   await expect(page.locator('#editor-panel')).toBeHidden();
 });
 test('43 Hero image persists into saved reader preview',async ({page})=>{
