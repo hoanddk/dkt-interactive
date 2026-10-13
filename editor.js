@@ -174,6 +174,7 @@
   const heroCaption=document.querySelector('#s00 figcaption')?.textContent.trim()||'';
   baseline.media.HERO_MEDIA=emptyMedia('HERO_MEDIA',heroCaption);
   baseline.media.B03_GRAPHIC_REPLACEMENT=emptyMedia('B03_GRAPHIC_REPLACEMENT','');
+  ['B01_BACKGROUND','B05_MODEL_A','B05_MODEL_B','B05_MODEL_C','B07_SCHEMATIC'].forEach(id=>baseline.media[id]=emptyMedia(id,''));
   state.media=clone(baseline.media);
   if(state.interactive.B01?.items) state.interactive.B01.items.forEach(item=>{ baseline.media[item.id]=clone(item.media); state.media[item.id]=clone(item.media); });
 
@@ -231,10 +232,10 @@
     const wrap=document.createElement('div'); wrap.className='ec-media-draft'; wrap.dataset.mediaSlot=slotId;
     if(m.removed){wrap.innerHTML='<p class="ec-asset-empty">Media đã được gỡ trong bản nháp.</p>';target.append(wrap);return;}
     const file=sessionFiles.get(slotId);
-    if(file && m.object_url){
+    if((file && m.object_url)||m.preview_data){
       if(m.media_type==='VIDEO'){
-        const v=document.createElement('video'); v.src=m.object_url; v.controls=true; v.preload='metadata'; v.loop=!!m.loop; v.muted=!!m.autoplay; v.autoplay=!!m.autoplay; if(m.poster_url)v.poster=m.poster_url; v.className='ec-preview-video'; wrap.append(v);
-      } else { const img=document.createElement('img'); img.src=m.object_url; img.alt=m.decorative?'':m.alt_text; img.className='ec-preview-image'; wrap.append(img); }
+        const v=document.createElement('video'); v.src=m.object_url||''; v.controls=true; v.preload='metadata'; v.loop=!!m.loop; v.muted=!!m.autoplay; v.autoplay=!!m.autoplay; if(m.poster_url)v.poster=m.poster_url; v.className='ec-preview-video'; wrap.append(v);
+      } else { const img=document.createElement('img'); img.src=m.preview_data||m.object_url; img.alt=m.decorative?'':m.alt_text; img.className='ec-preview-image'; wrap.append(img); }
     } else if(m.file_name){ const p=document.createElement('p'); p.className='ec-asset-empty'; p.textContent='Tệp media cần chọn lại sau khi tải lại trang.'; wrap.append(p); }
     if(m.show_caption&&m.caption){const p=document.createElement('p');p.className='ec-reader-caption';p.textContent=m.caption;wrap.append(p);}
     if(m.credit){const p=document.createElement('p');p.className='ec-reader-credit';p.textContent=m.credit;wrap.append(p);}
@@ -247,7 +248,7 @@
     footer.innerHTML=rows.map(([k,v])=>'<p><strong>'+esc(k)+':</strong> '+esc(v)+'</p>').join('')||'<p class="ec-footer-empty">Chưa có thông tin chân trang.</p>';
   };
   const renderPublication=()=>{ document.title=state.publication.title||baseline.publication.title; const h=document.querySelector('.site-header strong'); if(h&&state.publication.masthead)h.textContent=state.publication.masthead; renderFooter(); };
-  const renderAll=()=>{ applyText(); applyB03(); applyB06(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
+  const renderAll=()=>{ applyText(); applyB03(); applyB06(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
 
   const closePanel=()=>{ panel.hidden=true; panelOpen=false; if(lastFocused&&document.contains(lastFocused))lastFocused.focus(); };
   const openPanel=(title,html)=>{ lastFocused=document.activeElement; panel.querySelector('#ec-panel-title').textContent=title; panelBody.innerHTML=html; panel.hidden=false; panelOpen=true; panel.querySelector('#ec-close').focus(); };
@@ -322,25 +323,24 @@
   };
   const mediaTechnical=m=>({slot_id:m.slot_id,media_type:m.media_type,asset_type:m.asset_type,representation_status:m.representation_status,file_name:m.file_name,file_type:m.file_type,file_size:m.file_size,duration:m.duration,width:m.width,height:m.height,evidence_impact:m.evidence_impact,review_status:m.review_status});
   const openMedia=(slotId,{title='CHỈNH MEDIA',hold=false,evidenceImpact='PRESENTATION_ONLY'}={})=>{
-    if(!state.media[slotId])state.media[slotId]=emptyMedia(slotId,''); const m=state.media[slotId]; if(!m.evidence_impact)m.evidence_impact=evidenceImpact;
+    if(!state.media[slotId])state.media[slotId]=emptyMedia(slotId,''); const m=state.media[slotId]; if(!m.evidence_impact)m.evidence_impact=evidenceImpact; if(hold)m.review_status='HOLD_FOR_RESEARCH';
     openPanel(title,(hold?'<p class="ec-warning">CHỜ BỔ SUNG NGHIÊN CỨU — media chỉ là đề xuất, không nâng mức chắc chắn.</p>':'')+
-      '<p class="ec-type-badge">MEDIA · Ảnh hoặc video</p>'+ 
-      '<div class="ec-asset-input-actions"><label>TẢI LÊN / THAY MEDIA<input id="ec-media-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm"></label><button id="ec-media-remove" type="button">GỠ MEDIA</button><button id="ec-media-restore" type="button">KHÔI PHỤC MEDIA GỐC</button></div>'+ 
-      '<label>Loại hình ảnh<select id="ec-media-asset-type">'+optionHtml(typeLabels,m.asset_type)+'</select></label>'+ 
-      '<label>Nhãn hiển thị<select id="ec-media-representation">'+optionHtml(representationLabels,m.representation_status)+'</select></label>'+ 
+      '<p class="ec-small">Chọn ảnh hoặc video, điền chú thích và nguồn rồi lưu.</p>'+ 
+      '<div class="ec-asset-input-actions"><label>Chọn ảnh / video<input id="ec-media-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm"></label></div>'+ 
+      
       '<label><input id="ec-media-show-caption" type="checkbox"'+(m.show_caption?' checked':'')+'> Hiển thị chú thích</label>'+ 
       '<label>Chú thích<textarea id="ec-media-caption" rows="3">'+esc(m.caption)+'</textarea></label>'+ 
       '<label>Tác giả / Nguồn<input id="ec-media-credit" value="'+esc(m.credit)+'"></label>'+ 
-      '<label>Nguồn tư liệu / Bối cảnh<input id="ec-media-source" value="'+esc(m.source_context)+'"></label>'+ 
+      
       '<label>Mô tả ảnh cho người dùng khiếm thị<input id="ec-media-alt" value="'+esc(m.alt_text)+'"></label>'+ 
-      '<label><input id="ec-media-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Ảnh trang trí</label>'+ 
+      
       '<fieldset class="ec-video-options"'+(m.media_type==='VIDEO'?'':' hidden')+'><legend>Tùy chọn video</legend><label>Tỷ lệ<select id="ec-media-ratio"><option value="AUTO">Tự động</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label><label><input id="ec-media-autoplay" type="checkbox"'+(m.autoplay?' checked':'')+'> Tự phát (sẽ tắt tiếng)</label><label><input id="ec-media-loop" type="checkbox"'+(m.loop?' checked':'')+'> Lặp lại</label><label>Ảnh poster<input id="ec-media-poster" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><label>Phụ đề VTT nếu có<input id="ec-media-subtitle" type="file" accept="text/vtt,.vtt"></label></fieldset>'+ 
-      '<label>Mức ảnh hưởng đến bằng chứng<select id="ec-media-impact">'+optionHtml(impactLabels,m.evidence_impact)+'</select></label>'+ 
-      '<label>Lý do thay đổi<textarea id="ec-media-reason" rows="2">'+esc(m.change_reason)+'</textarea></label>'+ 
+      
+      '<details class="ec-media-advanced"><summary>CÔNG CỤ NÂNG CAO</summary><div class="ec-asset-input-actions"><button id="ec-media-remove" type="button">GỠ MEDIA</button><button id="ec-media-restore" type="button">KHÔI PHỤC MEDIA GỐC</button></div><label>Loại hình ảnh<select id="ec-media-asset-type">'+optionHtml(typeLabels,m.asset_type)+'</select></label><label>Nhãn hiển thị<select id="ec-media-representation">'+optionHtml(representationLabels,m.representation_status)+'</select></label><label>Nguồn tư liệu / Bối cảnh<input id="ec-media-source" value="'+esc(m.source_context)+'"></label><label><input id="ec-media-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Ảnh trang trí</label><label>Mức ảnh hưởng đến bằng chứng<select id="ec-media-impact">'+optionHtml(impactLabels,m.evidence_impact)+'</select></label><label>Lý do thay đổi<textarea id="ec-media-reason" rows="2">'+esc(m.change_reason)+'</textarea></label></details>'+ 
       '<div id="ec-media-status" class="ec-media-status">'+(m.file_name?'Tệp hiện tại: '+esc(m.file_name):'Chưa chọn tệp mới')+'</div>'+ 
       '<div id="ec-media-guidance" class="ec-media-guidance"></div>'+ 
       '<details class="ec-asset-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre>'+esc(JSON.stringify(mediaTechnical(m),null,2))+'</pre></details>'+ 
-      '<div class="ec-asset-input-actions"><button id="ec-media-save" type="button">LƯU BẢN NHÁP MEDIA</button><button id="ec-media-cancel" type="button">HỦY</button></div>');
+      '<div class="ec-asset-input-actions"><button id="ec-media-save" type="button">LƯU</button><button id="ec-media-cancel" type="button">HỦY</button></div>');
     const q=id=>panel.querySelector('#'+id); q('ec-media-ratio').value=m.aspect_ratio||'AUTO'; let candidate=sessionFiles.get(slotId)||null, candidateUrl=m.object_url||null, poster=sessionPosters.get(slotId)||null, posterUrl=m.poster_url||null, meta={duration:m.duration,width:m.width,height:m.height};
     const updateVideoVisibility=type=>{panel.querySelector('.ec-video-options').hidden=type!=='VIDEO';};
     q('ec-media-file').addEventListener('change',()=>{
@@ -356,7 +356,7 @@
     q('ec-media-save').addEventListener('click',()=>{
       checkpoint(); const old=state.media[slotId]||emptyMedia(slotId,''); const removed=q('ec-media-file').dataset.removed==='1'; const file=candidate; const mediaType=removed?old.media_type:(q('ec-media-file').dataset.mediaType||old.media_type||'IMAGE');
       const next={...old,slot_id:slotId,media_type:mediaType,asset_type:q('ec-media-asset-type').value,representation_status:q('ec-media-representation').value,file_name:removed?null:(file?.name||old.file_name),file_type:removed?null:(file?.type||old.file_type),file_size:removed?0:(file?.size||old.file_size||0),object_url:removed?null:(candidateUrl||old.object_url),poster_name:poster?.name||old.poster_name,poster_url:posterUrl||old.poster_url,caption:q('ec-media-caption').value.trim(),show_caption:q('ec-media-show-caption').checked,credit:q('ec-media-credit').value.trim(),source_context:q('ec-media-source').value.trim(),alt_text:q('ec-media-alt').value.trim(),decorative:q('ec-media-decorative').checked,aspect_ratio:q('ec-media-ratio').value,autoplay:q('ec-media-autoplay')?.checked||false,loop:q('ec-media-loop')?.checked||false,subtitle_name:q('ec-media-subtitle')?.files?.[0]?.name||old.subtitle_name,duration:meta.duration,width:meta.width,height:meta.height,change_reason:q('ec-media-reason').value.trim(),removed,evidence_impact:q('ec-media-impact').value,review_status:hold?'HOLD_FOR_RESEARCH':'DRAFT',timestamp:now()};
-      next.warnings=fileWarnings(next); state.media[slotId]=next; if(file)sessionFiles.set(slotId,file);else if(removed)sessionFiles.delete(slotId); if(poster)sessionPosters.set(slotId,poster); renderAll();refresh();closePanel();showNotice('Đã lưu bản nháp media. Quyền sử dụng không được hệ thống tự xác minh.');
+      next.warnings=fileWarnings(next); if(file && file.type.startsWith('image/') && file.size<=1024*1024){const reader=new FileReader();reader.onload=()=>{next.preview_data=String(reader.result||'');};reader.readAsDataURL(file);} else if(file){next.preview_data=null;} state.media[slotId]=next; if(file)sessionFiles.set(slotId,file);else if(removed)sessionFiles.delete(slotId); if(poster)sessionPosters.set(slotId,poster); renderAll();refresh();closePanel();showNotice('Đã lưu bản nháp media. Quyền sử dụng không được hệ thống tự xác minh.');
     });
     q('ec-media-file').focus();
   };
@@ -423,7 +423,8 @@
   document.querySelector('#s00 .asset-frame')?.addEventListener('click',e=>{if(e.target.closest('[data-editorial-field]'))return;openMedia('HERO_MEDIA',{title:'THAY ẢNH / VIDEO'});});
   [['project','project'],['foundation','foundation'],['hall','hall'],['court','court']].forEach(([key,cls])=>{const el=document.querySelector('#plan-visual .'+cls+' span');if(el){el.dataset.ecCopy='B03:'+key+':0';el.tabIndex=0;}});
   const planNote=document.querySelector('#measure .plan-controls .small');if(planNote){planNote.dataset.ecCopy='B03:note:0';planNote.tabIndex=0;}
-  addControl(document.querySelector('#plan-visual'),'CHỈNH NỘI DUNG ĐỒ HỌA',openB03);
+  addControl(document.querySelector('#plan-visual'),'THAY ẢNH / VIDEO',()=>openMedia('B03_GRAPHIC_REPLACEMENT',{title:'THAY ẢNH / VIDEO',evidenceImpact:'EVIDENCE_SUPPORTING'}));
+  [['B01_BACKGROUND','#remains .photo-fallback',false,'EVIDENCE_SUPPORTING'],['B05_MODEL_A','#model-a .model-schematic',true,'EVIDENCE_AFFECTING'],['B05_MODEL_B','#model-b .model-schematic',true,'EVIDENCE_AFFECTING'],['B05_MODEL_C','#model-c .model-schematic',true,'EVIDENCE_AFFECTING'],['B07_SCHEMATIC','#preserve .technical-fallback',false,'EVIDENCE_SUPPORTING']].forEach(([id,selector,hold,impact])=>{const el=document.querySelector(selector);if(!el)return;el.classList.add('ec-media-click');el.tabIndex=0;el.setAttribute('aria-label','Thay ảnh hoặc video');el.addEventListener('click',e=>{if(e.target.closest('button'))return;openMedia(id,{title:'THAY ẢNH / VIDEO',hold,evidenceImpact:impact});});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openMedia(id,{title:'THAY ẢNH / VIDEO',hold,evidenceImpact:impact});}});});
   // Existing multi-field controls remain available under advanced tooling only.
   // Click visible explanation copy; double-click the step label to edit it.
 
