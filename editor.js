@@ -170,6 +170,21 @@
     box.innerHTML=original; return {items};
   };
   baseline.interactive.B06=captureB06(); state.interactive.B06=clone(baseline.interactive.B06);
+  const captureHistory=()=>{
+    const buttons=[...document.querySelectorAll('#history-layers .layer,#time-layers .layer,.layer-stack .layer')];
+    const box=document.querySelector('#layer-info');if(!buttons.length||!box)return {items:[]};
+    const active=buttons.find(b=>b.classList.contains('active'))||buttons[0];
+    const items=buttons.map((btn,i)=>{
+      btn.click();const ps=[...box.querySelectorAll('p')];
+      return {key:btn.dataset.layer,number:i+1,label:btn.textContent.trim(),
+        title:box.querySelector('h3')?.textContent.trim()||btn.textContent.trim(),
+        intro:(ps[0]?.textContent||'').replace(/^Điều giúp hiểu:\s*/,'').trim(),
+        limit:(ps[1]?.textContent||'').replace(/^Không suy quá:\s*/,'').trim(),timestamp:null};
+    });
+    active.click();return {items};
+  };
+  baseline.interactive.HISTORY=captureHistory();state.interactive.HISTORY=clone(baseline.interactive.HISTORY);
+
 
   const heroCaption=document.querySelector('#s00 figcaption')?.textContent.trim()||'';
   const b01Placeholder=document.querySelector('#remains .placeholder-label');if(b01Placeholder)b01Placeholder.textContent='Chưa có ảnh chính';
@@ -217,6 +232,15 @@
     const d=state.structured.B03, root=document.querySelector('#plan-visual'); if(!d||!root)return;
     [['project','project'],['foundation','foundation'],['hall','hall'],['court','court']].forEach(([key,cls])=>{const el=root.querySelector('.'+cls+' span');if(el)el.textContent=d[key];});
     const note=document.querySelector('#measure .plan-controls .small'); if(note)note.textContent=d.note; root.setAttribute('aria-label',d.aria);
+  };
+  const applyHistory=(selectedKey=null)=>{
+    const data=state.interactive.HISTORY;if(!data?.items?.length)return;
+    data.items.forEach(item=>{const btn=[...document.querySelectorAll('.layer-stack .layer')].find(b=>b.dataset.layer===item.key);if(btn)btn.textContent=item.label;});
+    const item=data.items.find(x=>x.key===selectedKey);
+    const box=document.querySelector('#layer-info');
+    if(item&&box)box.innerHTML='<h3 data-ec-copy="HISTORY:title:'+data.items.indexOf(item)+'">'+esc(item.title)+'</h3>'+
+      '<p><strong>Điều giúp hiểu:</strong> <span data-ec-copy="HISTORY:intro:'+data.items.indexOf(item)+'">'+esc(item.intro)+'</span></p>'+
+      '<p><strong>Không suy quá:</strong> <span data-ec-copy="HISTORY:limit:'+data.items.indexOf(item)+'">'+esc(item.limit)+'</span></p>';
   };
   const renderB01Card=(idx)=>{
     const card=document.querySelector('#hotspot-card'), item=state.interactive.B01?.items?.[idx]; if(!card||!item)return;
@@ -275,7 +299,7 @@
   };
   const renderPublication=()=>{document.title=state.publication.title||baseline.publication.title;renderMasthead(state.publication);renderFooter();};
 
-  const renderAll=()=>{ if(activeText)return;applyText(); applyB03(); applyB06(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
+  const renderAll=()=>{ if(activeText)return;applyText(); applyB03(); applyB06(); applyHistory(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
 
   const closePanel=()=>{ panel.hidden=true; panelOpen=false; if(lastFocused&&document.contains(lastFocused))lastFocused.focus(); };
   const openPanel=(title,html)=>{ lastFocused=document.activeElement; panel.querySelector('#ec-panel-title').textContent=title; panelBody.innerHTML=html; panel.hidden=false; panelOpen=true; panel.querySelector('#ec-close').focus(); };
@@ -286,6 +310,11 @@
     if(!cleaned||cleaned===field.baseline) delete state.text[field.id]; else state.text[field.id]={fieldId:field.id,path:field.path,section:field.section,before:field.baseline,after:cleaned,policy:field.policy,timestamp:now(),reason,previewOnly:field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED'};
     if(field.node.matches('#s00 h1')) state.publication.title=cleaned||field.baseline;
     if(field.node.matches('#s00 .dek')) state.publication.sapo=cleaned||field.baseline;
+    if(field.node.matches('.layer-stack .layer')){
+      const item=state.interactive.HISTORY?.items?.find(x=>x.key===field.node.dataset.layer);
+      if(item){item.label=cleaned||field.baseline;item.timestamp=now();}
+    }
+
     renderAll();refresh();
   };
 
@@ -612,6 +641,8 @@
 
   document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);}))); 
   document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB06(btn.dataset.reason))));
+  document.querySelectorAll('.layer-stack .layer').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyHistory(btn.dataset.layer))));
+
 
   document.querySelector('.site-header strong')?.addEventListener('click',e=>{openPublicationCopy('masthead',e.currentTarget);e.currentTarget.focus();});
   document.querySelector('.site-header .ec-masthead-logo')?.addEventListener('click',openPublication);
