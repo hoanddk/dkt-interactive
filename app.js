@@ -184,25 +184,46 @@
     if(b01?.items)document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b01.items[i];if(x&&x.status!=='Ẩn tạm')renderHotspotCard(x);}))); 
     const b06=draft.interactive?.B06;
     if(b06?.items){b06.items.forEach(x=>{const btn=document.querySelector('#roof-case [data-reason="'+CSS.escape(x.key)+'"]');if(btn)btn.textContent=x.label;});document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b06.items.find(i=>i.key===btn.dataset.reason),box=document.getElementById('reason-info');if(x&&box)box.innerHTML='<h3>'+esc(x.title)+'</h3><p>'+esc(x.copy)+'</p>';})));}
-    const hero=draft.media?.HERO_MEDIA,cap=document.querySelector('#s00 figcaption');
-    if(hero&&cap&&hero.timestamp){
-      if(hero.show_caption&&hero.caption){cap.hidden=false;cap.textContent=hero.caption+(hero.credit?' — '+hero.credit:'');}
-      else cap.hidden=true;
-      if(/^data:image\/(png|jpeg|webp|gif);base64,/i.test(hero.preview_data||'')){
-        const frame=document.querySelector('#s00 .asset-frame');
-        frame?.querySelector('.placeholder-art')?.setAttribute('hidden','');
-        const image=document.createElement('img');image.className='ec-preview-image';image.src=hero.preview_data;
-        image.alt=hero.decorative?'':hero.alt_text||hero.caption||'Ảnh minh họa';
-        frame?.insertBefore(image,cap);
-      }
+    // Reader Preview uses the exact saved binary from IndexedDB, not a thumbnail
+    // or a session-only objectURL. No placeholder is appended beneath real media.
+    const targets={
+      HERO_MEDIA:'#s00 .asset-frame',
+      B01_BACKGROUND:'#remains .photo-fallback',
+      B03_GRAPHIC_REPLACEMENT:'#plan-visual',
+      B05_MODEL_A:'#model-a .model-schematic',
+      B05_MODEL_B:'#model-b .model-schematic',
+      B05_MODEL_C:'#model-c .model-schematic',
+      B07_SCHEMATIC:'#preserve .technical-fallback'
+    };
+    for(const [id,selector] of Object.entries(targets)){
+      const meta=draft.media?.[id],target=document.querySelector(selector);
+      if(!meta?.file_name||meta.removed||meta.review_status==='HOLD_FOR_RESEARCH'||!target)continue;
+      window.__dktMediaStore.show(id,target,meta).catch(()=>{target.dataset.mediaMissing='true';});
     }
-    [['B01_BACKGROUND','#remains .photo-fallback'],['B03_GRAPHIC_REPLACEMENT','#plan-visual'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>{
-      const m=draft.media?.[id],target=document.querySelector(selector);
-      if(!m||m.review_status==='HOLD_FOR_RESEARCH'||!target||!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(m.preview_data||''))return;
-      target.classList.add('ec-replaced-visual');
-      const img=document.createElement('img');img.src=m.preview_data;img.alt=m.decorative?'':m.alt_text||m.caption||'Ảnh minh họa';img.className='ec-preview-image';
-      target.append(img);
+    const card=document.querySelector('#hotspot-card');
+    document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>{
+      queueMicrotask(()=>{
+        const item=draft.interactive?.B01?.items?.[i],meta=item&&draft.media?.[item.id];
+        if(!card||!item)return;
+        if(meta?.file_name&&!meta.removed){
+          window.__dktMediaStore.show(item.id,card,meta).catch(()=>{card.dataset.mediaMissing='true';});
+        }else card.querySelectorAll(':scope > .ec-slot-media').forEach(x=>x.remove());
+      });
+    }));
+
+  }
+
+  // Reader-only separation: editorial workflow notes are never reader copy.
+  // Evidence explanations and source limitations remain visible.
+  if(!new URLSearchParams(location.search).has('edit')){
+    document.querySelectorAll('.representation-banner').forEach(el=>el.hidden=true);
+    document.querySelectorAll('main .small,main .notice').forEach(el=>{
+      if(/CHUỖI LẬP LUẬN BIÊN TẬP|SƠ ĐỒ BIÊN TẬP|KHÔNG PHẢI BẢN VẼ KỸ THUẬT/.test(el.textContent||'')){
+        if(/SƠ ĐỒ BIÊN TẬP/.test(el.textContent||''))el.textContent='Sơ đồ minh họa; không thay thế bản vẽ kỹ thuật hoặc tư liệu khảo cổ.';
+        else el.hidden=true;
+      }
     });
+    document.querySelectorAll('.placeholder-label').forEach(el=>{if(!el.closest('.ec-has-real-media'))el.textContent='Chưa có ảnh chính';});
   }
 
   // Data-driven footer. Empty optional rows render nothing.
