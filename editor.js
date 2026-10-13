@@ -105,7 +105,7 @@
   const contentSelector='h1,h2,h3,p,figcaption,li,.reasoning-chain button,[role="tab"]';
   const fieldPolicy=(el,section)=>{
     const id=section.id;
-    if(id==='evidence-tower') return 'LOCKED';
+    if(id==='evidence-tower' && !el.closest('.narrow')) return 'LOCKED';
     if(el.closest('.status-badge,.badge,.representation-banner')) return 'LOCKED';
     if(id==='measure' && (el.closest('.plan-grid')||el.closest('.plan-controls'))) return 'LOCKED';
     if(id==='remains' && el.closest('.hotspot-stage')) return 'LOCKED';
@@ -126,7 +126,7 @@
       const interactiveControl=el.matches('button,[role="tab"]');
       const rich=el.children.length>0 && !interactiveControl;
       let policy=fieldPolicy(el,section);
-      if(rich && policy==='EDITABLE') policy='LOCKED';
+      // Rich copy can be edited; interaction elements and evidence widgets remain locked by policy.
       const field={id,path,node:el,section:section.dataset.block||section.dataset.screen||section.id,baseline:value,policy,interactiveControl};
       fields.set(id,field); el.dataset.editorialField=id; el.dataset.editorialPolicy=policy;
       if(policy==='LOCKED'){ el.title='ĐÃ KHÓA — giữ nguyên logic, cấu trúc hoặc trạng thái bằng chứng'; return; }
@@ -203,7 +203,7 @@
     fields.forEach(field=>{
       const rec=state.text[field.id];
       if(field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED'){
-        field.node.textContent=field.baseline; field.node.classList.toggle('ec-proposal',!!rec); return;
+        field.node.textContent=rec?.after||field.baseline; field.node.classList.toggle('ec-proposal',!!rec); return;
       }
       field.node.textContent=rec?.after||field.baseline; field.node.classList.toggle('ec-changed',!!rec);
     });
@@ -218,12 +218,12 @@
   };
   const renderB01Card=(idx)=>{
     const card=document.querySelector('#hotspot-card'), item=state.interactive.B01?.items?.[idx]; if(!card||!item)return;
-    card.innerHTML='<h3>'+esc(item.title)+'</h3><p><strong>'+esc(item.known_label)+'</strong> '+esc(item.known)+'</p><p><strong>'+esc(item.limit_label)+'</strong> '+esc(item.limit)+'</p>'+(item.note?'<p class="small">'+esc(item.note)+'</p>':'')+'<button type="button" class="ec-hotspot-context-action" data-ec-hotspot-edit="'+idx+'">CHỈNH NỘI DUNG — ĐIỂM TƯƠNG TÁC '+(idx+1)+'</button>';
+    card.innerHTML='<h3 data-ec-copy="B01:title:'+idx+'">'+esc(item.title)+'</h3><p data-ec-copy="B01:known:'+idx+'"><strong>'+esc(item.known_label)+'</strong> '+esc(item.known)+'</p><p data-ec-copy="B01:limit:'+idx+'"><strong>'+esc(item.limit_label)+'</strong> '+esc(item.limit)+'</p>'+(item.note?'<p class="small" data-ec-copy="B01:note:'+idx+'">'+esc(item.note)+'</p>':'')+'<button type="button" class="ec-hotspot-context-action" data-ec-hotspot-edit="'+idx+'">SỬA NỘI DUNG</button>';
   };
   const applyB06=(selectedKey=null)=>{
     const data=state.interactive.B06; if(!data)return;
     data.items.forEach(item=>{const btn=document.querySelector('#roof-case [data-reason="'+CSS.escape(item.key)+'"]');if(btn)btn.textContent=item.label;});
-    if(selectedKey){ const item=data.items.find(x=>x.key===selectedKey), box=document.querySelector('#reason-info'); if(item&&box)box.innerHTML='<h3>'+esc(item.title)+'</h3><p>'+esc(item.copy)+'</p>'; }
+    if(selectedKey){ const item=data.items.find(x=>x.key===selectedKey), box=document.querySelector('#reason-info'); if(item&&box)box.innerHTML='<h3 data-ec-copy="B06:title:'+data.items.indexOf(item)+'">'+esc(item.title)+'</h3><p data-ec-copy="B06:copy:'+data.items.indexOf(item)+'">'+esc(item.copy)+'</p>'; }
   };
   const renderMediaSummary=(slotId,target)=>{
     if(!target)return; target.querySelectorAll(':scope > .ec-media-draft').forEach(el=>el.remove());
@@ -260,17 +260,55 @@
     if(field.node.matches('#s00 .dek')) state.publication.sapo=cleaned||field.baseline;
     renderAll();refresh();
   };
-  const stopText=(commit=true)=>{if(!activeText)return;const {field,old}=activeText;const next=field.node.textContent;field.node.removeAttribute('contenteditable');field.node.classList.remove('ec-active');activeText=null;field.node.textContent=old;if(commit)setText(field,next);else renderAll();};
+
+  // F-EDITOR-UX-05: one simple copy editor for all mapped visible text.
+  // Evidence/HOLD policy is stored with the change record, never promoted here.
+  const openSimpleText=({title='SỬA CÂU CHỮ',value,save,hold=false})=>{
+    openPanel(title,(hold?'<p class="ec-simple-note">⚠ Chờ bổ sung nghiên cứu. Nội dung sửa chỉ hiển thị trong phiên biên tập; không tự được duyệt xuất bản.</p>':'')+
+      '<label>Nội dung<textarea id="ec-copy-input" rows="5">'+esc(value)+'</textarea></label>'+
+      '<div class="ec-asset-input-actions"><button id="ec-copy-save" type="button">LƯU</button><button id="ec-copy-cancel" type="button">HỦY</button></div>');
+    panel.querySelector('#ec-copy-save').addEventListener('click',()=>{save(panel.querySelector('#ec-copy-input').value);closePanel();});
+    panel.querySelector('#ec-copy-cancel').addEventListener('click',closePanel);
+    panel.querySelector('#ec-copy-input').focus();
+  };
   const beginText=field=>{
-    if(field.policy==='LOCKED'){showNotice('ĐÃ KHÓA — không thay đổi logic hoặc trạng thái bằng chứng.');return;}
-    if(field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED'){openProposal(field);return;}
-    if(activeText)stopText(true);activeText={field,old:field.node.textContent};field.node.setAttribute('contenteditable','plaintext-only');field.node.classList.add('ec-active');field.node.focus();showNotice('Đang sửa câu chữ. Enter để lưu, Esc để hủy.');
+    if(!field||field.policy==='LOCKED')return;
+    openSimpleText({value:state.text[field.id]?.after||field.baseline,hold:field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED',save:v=>setText(field,v)});
   };
-  const openProposal=field=>{
-    const current=state.text[field.id]?.after||field.baseline;
-    openPanel('ĐỀ XUẤT CÂU CHỮ · '+field.section,'<p class="ec-warning">'+(field.policy==='HOLD_FOR_RESEARCH'?'CHỜ BỔ SUNG NGHIÊN CỨU — chỉ lưu đề xuất; không thay đổi trạng thái bằng chứng.':'CẦN DUYỆT — đề xuất chưa phải nội dung cuối.')+'</p><label>Nội dung hiện tại<textarea id="ec-proposed" rows="6">'+esc(current)+'</textarea></label><label>Lý do thay đổi<input id="ec-proposed-reason" value="'+esc(state.text[field.id]?.reason||'')+'"></label><button type="button" id="ec-proposed-save">LƯU ĐỀ XUẤT</button>');
-    panel.querySelector('#ec-proposed-save').addEventListener('click',()=>{setText(field,panel.querySelector('#ec-proposed').value,panel.querySelector('#ec-proposed-reason').value.trim());closePanel();showNotice('Đã lưu đề xuất. Trạng thái nghiên cứu/duyệt không đổi.');});panel.querySelector('#ec-proposed').focus();
+  const stopText=()=>{};
+  const openProposal=beginText;
+  const updateB03Copy=(key,value)=>{
+    const d=state.structured.B03;if(!d||!(key in d))return;
+    const cleaned=value.trim();if(cleaned===d[key])return;
+    checkpoint();d[key]=cleaned;d.timestamp=now();
+    const before=baseline.structured.B03;
+    const numericChanged=['project','foundation','hall','court'].some(k=>(d[k].match(/[\d.,]+/g)||[]).join('|')!==(before[k].match(/[\d.,]+/g)||[]).join('|'));
+    d.evidence_impact=numericChanged?'EVIDENCE_AFFECTING':'EVIDENCE_SUPPORTING';
+    applyB03();refresh();
   };
+  const openMappedCopy=(kind,key,index=0)=>{
+    if(kind==='B03'){
+      const d=state.structured.B03;if(!d)return;
+      openSimpleText({value:d[key],save:v=>updateB03Copy(key,v)});return;
+    }
+    const data=state.interactive[kind],item=data?.items?.[index];if(!item||!(key in item))return;
+    openSimpleText({value:item[key],save:v=>{
+      const cleaned=v.trim();if(cleaned===item[key])return;
+      checkpoint();item[key]=cleaned;item.timestamp=now();
+      if(kind==='B01')renderB01Card(index);
+      if(kind==='B06')applyB06(item.key);
+      refresh();
+    }});
+  };
+  const researchWarning=(section,details)=>{
+    if(!section||section.querySelector('.ec-block-warning'))return;
+    const b=document.createElement('button');b.type='button';b.className='ec-block-warning';
+    b.textContent='⚠ Chờ bổ sung nghiên cứu';b.title='Xem những vấn đề còn chờ kiểm chứng';
+    b.addEventListener('click',()=>openPanel('NỘI DUNG CHỜ NGHIÊN CỨU','<p>'+esc(details)+'</p><p>Chỉnh sửa câu chữ không thay đổi trạng thái nghiên cứu hay mức bằng chứng.</p>'));
+    (section.querySelector('.narrow')||section).append(b);
+  };
+  researchWarning(document.querySelector('#models'),'Trạng thái các phương án hình ảnh và căn cứ phê duyệt chưa được xác minh đầy đủ.');
+  researchWarning(document.querySelector('#control-gates'),'Căn cứ pháp lý trong nước và trạng thái quyết định UNESCO cần tiếp tục đối chiếu.');
 
   const fileWarnings=m=>{
     const w=[]; if(m.media_type==='VIDEO'){
@@ -372,18 +410,22 @@
   const exitMode=()=>{if(isDirty()&&!confirm('Có thay đổi chưa LƯU NHÁP. Thoát biên tập?'))return;const u=new URL(location.href);u.searchParams.delete('edit');u.searchParams.delete('editorial_mode');location.assign(u.toString());};
 
   main.addEventListener('click',e=>{
+    const mapped=e.target.closest('[data-ec-copy]');if(mapped){const [kind,key,idx]=mapped.dataset.ecCopy.split(':');if(kind==='B03'||kind==='B01'||kind==='B06'){e.preventDefault();e.stopPropagation();openMappedCopy(kind,key,Number(idx||0));return;}}
     const hotspotEdit=e.target.closest('[data-ec-hotspot-edit]');if(hotspotEdit){e.preventDefault();openB01(Number(hotspotEdit.dataset.ecHotspotEdit));return;}
     const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||field.policy==='LOCKED'||field.interactiveControl)return;e.preventDefault();beginText(field);
   });
-  main.addEventListener('dblclick',e=>{const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||!field.interactiveControl)return;e.preventDefault();e.stopPropagation();if(field.node.closest('#roof-case .reasoning-chain')){const idx=[...document.querySelectorAll('#roof-case [data-reason]')].indexOf(field.node);openB06(Math.max(0,idx));}else beginText(field);});
-  main.addEventListener('keydown',e=>{const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||field.policy==='LOCKED')return;if(activeText&&activeText.field===field){if(e.key==='Escape'){e.preventDefault();stopText(false);}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();stopText(true);}}else if(!field.interactiveControl&&(e.key==='Enter'||e.key===' ')){e.preventDefault();beginText(field);}else if(field.interactiveControl&&e.key==='F2'){e.preventDefault();if(field.node.closest('#roof-case .reasoning-chain'))openB06([...document.querySelectorAll('#roof-case [data-reason]')].indexOf(field.node));else beginText(field);}});
+  main.addEventListener('dblclick',e=>{const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||!field.interactiveControl)return;e.preventDefault();e.stopPropagation();if(field.node.closest('#roof-case .reasoning-chain')){const idx=[...document.querySelectorAll('#roof-case [data-reason]')].indexOf(field.node);openMappedCopy('B06','label',Math.max(0,idx));}else beginText(field);});
+  main.addEventListener('keydown',e=>{const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||field.policy==='LOCKED')return;if(activeText&&activeText.field===field){if(e.key==='Escape'){e.preventDefault();stopText(false);}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();stopText(true);}}else if(!field.interactiveControl&&(e.key==='Enter'||e.key===' ')){e.preventDefault();beginText(field);}else if(field.interactiveControl&&e.key==='F2'){e.preventDefault();if(field.node.closest('#roof-case .reasoning-chain'))openMappedCopy('B06','label',[...document.querySelectorAll('#roof-case [data-reason]')].indexOf(field.node));else beginText(field);}});
   main.addEventListener('focusout',e=>{if(activeText&&e.target===activeText.field.node)stopText(true);});
 
   const addControl=(target,text,handler,className='ec-visual-control')=>{if(!target)return;const b=document.createElement('button');b.type='button';b.className=className;b.textContent=text;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();handler();});target.insertAdjacentElement('afterend',b);return b;};
-  addControl(document.querySelector('#s00 .asset-frame'),'CHỈNH MEDIA',()=>openMedia('HERO_MEDIA',{title:'CHỈNH MEDIA — HERO'}));
+  addControl(document.querySelector('#s00 .asset-frame'),'THAY ẢNH / VIDEO',()=>openMedia('HERO_MEDIA',{title:'THAY ẢNH / VIDEO'}));
+  document.querySelector('#s00 .asset-frame')?.addEventListener('click',e=>{if(e.target.closest('[data-editorial-field]'))return;openMedia('HERO_MEDIA',{title:'THAY ẢNH / VIDEO'});});
+  [['project','project'],['foundation','foundation'],['hall','hall'],['court','court']].forEach(([key,cls])=>{const el=document.querySelector('#plan-visual .'+cls+' span');if(el){el.dataset.ecCopy='B03:'+key+':0';el.tabIndex=0;}});
+  const planNote=document.querySelector('#measure .plan-controls .small');if(planNote){planNote.dataset.ecCopy='B03:note:0';planNote.tabIndex=0;}
   addControl(document.querySelector('#plan-visual'),'CHỈNH NỘI DUNG ĐỒ HỌA',openB03);
-  addControl(document.querySelector('#remains .hotspot-stage'),'CHỈNH THÀNH PHẦN TƯƠNG TÁC',()=>openB01(0));
-  addControl(document.querySelector('#roof-case .reasoning-chain'),'CHỈNH NỘI DUNG CÁC BƯỚC',()=>openB06(0));
+  // Existing multi-field controls remain available under advanced tooling only.
+  // Click visible explanation copy; double-click the step label to edit it.
 
   document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);}))); 
   document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB06(btn.dataset.reason))));
