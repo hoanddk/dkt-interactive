@@ -52,7 +52,7 @@
 
   const baseline = {
     publication: {
-      masthead:(document.querySelector('.site-header strong')?.textContent||'').trim(),
+      masthead:(document.querySelector('.site-header strong')?.textContent||'').trim(), masthead_visible:true, masthead_logo_data:'', masthead_logo_name:'',
       section:'Bài tương tác', title:(document.querySelector('#s00 h1')?.textContent||document.title).trim(),
       sapo:(document.querySelector('#s00 .dek')?.textContent||'').trim(), authors:'', publish_date:'', publish_time:'', updated_at:'',
       slug:location.pathname.split('/').filter(Boolean).pop()||'dien-kinh-thien', editor:'', photos:'', graphics:'Tòa soạn', design:'', team:''
@@ -247,7 +247,31 @@
     const rows=[['Tác giả / Nhóm tác giả',f.authors],['Nguồn tài liệu / tư liệu',f.sources],['Ảnh',f.photos],['Đồ họa / Thiết kế',f.graphics],['Biên tập',f.editor],['Dòng bài / Chuyên đề',f.series],['Giới thiệu tòa soạn',f.newsroom],['Ngày xuất bản',f.publish_date],['Ngày cập nhật',f.updated_at],['Ghi chú phương pháp',f.method]].filter(([,v])=>String(v||'').trim());
     footer.innerHTML=rows.map(([k,v])=>'<p><strong>'+esc(k)+':</strong> '+esc(v)+'</p>').join('')||'<p class="ec-footer-empty">Chưa có thông tin chân trang.</p>';
   };
-  const renderPublication=()=>{ document.title=state.publication.title||baseline.publication.title; const h=document.querySelector('.site-header strong'); if(h&&state.publication.masthead)h.textContent=state.publication.masthead; renderFooter(); };
+
+  const renderMasthead=(pub)=>{
+    const brand=document.querySelector('.site-header .header-inner > div:first-child');
+    if(!brand)return;
+    const name=brand.querySelector('strong');
+    if(name)name.textContent=pub.masthead||baseline.publication.masthead;
+    brand.hidden=pub.masthead_visible===false;
+    let logo=brand.querySelector('.ec-masthead-logo');
+    if(!logo){logo=document.createElement('img');logo.className='ec-masthead-logo';logo.alt='Logo '+(pub.masthead||'tòa soạn');brand.prepend(logo);}
+    const safe=/^data:image\/(png|jpeg|webp|gif);base64,/i.test(pub.masthead_logo_data||'');
+    logo.hidden=!safe; if(safe)logo.src=pub.masthead_logo_data;else logo.removeAttribute('src');
+    if(name)name.hidden=safe;
+    const copy=document.querySelector('#s00 .hero-copy');
+    if(!copy)return;
+    let section=copy.querySelector('.ec-publication-section');
+    if(!section){section=document.createElement('p');section.className='ec-publication-section';copy.prepend(section);}
+    section.textContent=pub.section||'';
+    section.hidden=!pub.section;
+    let byline=copy.querySelector('.ec-publication-byline');
+    if(!byline){byline=document.createElement('p');byline.className='ec-publication-byline';copy.querySelector('.dek')?.insertAdjacentElement('afterend',byline);}
+    byline.textContent=[pub.authors,pub.publish_date].filter(Boolean).join(' · ');
+    byline.hidden=!byline.textContent;
+  };
+  const renderPublication=()=>{document.title=state.publication.title||baseline.publication.title;renderMasthead(state.publication);renderFooter();};
+
   const renderAll=()=>{ applyText(); applyB03(); applyB06(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
 
   const closePanel=()=>{ panel.hidden=true; panelOpen=false; if(lastFocused&&document.contains(lastFocused))lastFocused.focus(); };
@@ -380,12 +404,60 @@
     openPanel('CHỈNH NỘI DUNG TƯƠNG TÁC — B06','<p class="ec-type-badge">THÀNH PHẦN TƯƠNG TÁC</p><p class="ec-item-nav">'+data.items.map((x,i)=>'<button type="button" data-b06-item="'+i+'"'+(i===selected?' class="active"':'')+'>'+(i+1)+'</button>').join('')+'</p><label>Nhãn bước<input id="b06-label" value="'+esc(item.label)+'"></label><label>Tiêu đề giải thích<input id="b06-title" value="'+esc(item.title)+'"></label><label>Nội dung giải thích<textarea id="b06-copy" rows="5">'+esc(item.copy)+'</textarea></label><label>Lý do thay đổi<input id="b06-reason" value="'+esc(item.reason||'')+'"></label><div class="ec-asset-input-actions"><button id="b06-save" type="button">LƯU BƯỚC</button><button id="b06-cancel" type="button">HỦY</button></div><details class="ec-asset-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre>component: B06_REASONING_CHAIN\ninteraction_logic: LOCKED\nitem_key: '+esc(item.key)+'</pre></details>');
     panel.querySelectorAll('[data-b06-item]').forEach(btn=>btn.addEventListener('click',()=>openB06(Number(btn.dataset.b06Item))));panel.querySelector('#b06-save').addEventListener('click',()=>{checkpoint();Object.assign(state.interactive.B06.items[selected],{label:panel.querySelector('#b06-label').value.trim(),title:panel.querySelector('#b06-title').value.trim(),copy:panel.querySelector('#b06-copy').value.trim(),reason:panel.querySelector('#b06-reason').value.trim(),timestamp:now()});applyB06(item.key);refresh();closePanel();showNotice('Đã lưu câu chữ B06; ID, thứ tự và logic chuyển bước không đổi.');});panel.querySelector('#b06-cancel').addEventListener('click',closePanel);
   };
-  const publicationFields=[['masthead','Cơ quan báo chí / Măng-sét'],['section','Chuyên mục'],['title','Tiêu đề'],['sapo','Sapo'],['authors','Tác giả / Nhóm tác giả'],['publish_date','Ngày xuất bản'],['publish_time','Giờ xuất bản'],['updated_at','Ngày cập nhật gần nhất'],['slug','URL slug'],['editor','Biên tập'],['photos','Ảnh'],['graphics','Đồ họa'],['design','Thiết kế'],['team','Nhóm thực hiện']];
-  const footerFields=[['authors','Tác giả / Nhóm tác giả'],['sources','Nguồn tài liệu và tư liệu'],['photos','Ảnh'],['graphics','Đồ họa / Thiết kế'],['editor','Biên tập'],['series','Giới thiệu dòng bài / chuyên đề'],['newsroom','Giới thiệu tòa soạn'],['publish_date','Ngày xuất bản'],['updated_at','Ngày cập nhật'],['method','Ghi chú phương pháp']];
+
+  // One short publishing form. Legacy metadata stays in collapsed details.
   const openPublication=()=>{
-    const p=state.publication,f=state.footer,s=state.share;
-    openPanel('THÔNG TIN XUẤT BẢN','<h3>Thông tin bài</h3>'+publicationFields.map(([k,l])=>'<label>'+l+(k==='sapo'?'<textarea rows="4" data-pub="'+k+'">'+esc(p[k])+'</textarea>':'<input data-pub="'+k+'" value="'+esc(p[k])+'">')+'</label>').join('')+'<h3>Chân trang</h3><p class="ec-small">Trường để trống sẽ không hiển thị.</p>'+footerFields.map(([k,l])=>'<label>'+l+'<input data-footer="'+k+'" value="'+esc(f[k])+'"></label>').join('')+'<h3>Thông tin chia sẻ</h3><label>Tiêu đề chia sẻ<input data-share="title" value="'+esc(s.title)+'"></label><label>Mô tả chia sẻ<textarea data-share="description" rows="3">'+esc(s.description)+'</textarea></label><label>Ảnh đại diện chia sẻ<input data-share="thumbnail" value="'+esc(s.thumbnail)+'"></label><label>Canonical URL<input data-share="canonical" value="'+esc(s.canonical)+'"></label><div class="ec-asset-input-actions"><button id="ec-publication-save" type="button">LƯU THÔNG TIN</button><button id="ec-publication-cancel" type="button">HỦY</button></div>');
-    panel.querySelector('#ec-publication-save').addEventListener('click',()=>{checkpoint();panel.querySelectorAll('[data-pub]').forEach(el=>state.publication[el.dataset.pub]=el.value.trim());panel.querySelectorAll('[data-footer]').forEach(el=>state.footer[el.dataset.footer]=el.value.trim());panel.querySelectorAll('[data-share]').forEach(el=>state.share[el.dataset.share]=el.value.trim());const h1Field=[...fields.values()].find(x=>x.node.matches('#s00 h1'));const dekField=[...fields.values()].find(x=>x.node.matches('#s00 .dek'));if(h1Field&&state.publication.title!==h1Field.baseline)state.text[h1Field.id]={fieldId:h1Field.id,path:h1Field.path,section:h1Field.section,before:h1Field.baseline,after:state.publication.title,policy:'EDITABLE',timestamp:now(),reason:'Đồng bộ từ Thông tin xuất bản',previewOnly:false};if(dekField&&state.publication.sapo!==dekField.baseline)state.text[dekField.id]={fieldId:dekField.id,path:dekField.path,section:dekField.section,before:dekField.baseline,after:state.publication.sapo,policy:'EDITABLE',timestamp:now(),reason:'Đồng bộ từ Thông tin xuất bản',previewOnly:false};renderAll();refresh();closePanel();showNotice('Đã cập nhật thông tin xuất bản và chân trang.');});panel.querySelector('#ec-publication-cancel').addEventListener('click',closePanel);
+    const p=state.publication,f=state.footer,sh=state.share;
+    const input=(key,label)=>'<label>'+label+'<input data-pub="'+key+'" value="'+esc(p[key]||'')+'"></label>';
+    const extra=[['title','Tiêu đề bài'],['sapo','Sapo'],['publish_date','Ngày xuất bản'],['publish_time','Giờ xuất bản'],['updated_at','Ngày cập nhật'],['slug','Đường dẫn bài'],['design','Thiết kế'],['team','Nhóm thực hiện']];
+    const footerExtra=[['series','Giới thiệu dòng bài'],['newsroom','Giới thiệu tòa soạn'],['method','Ghi chú phương pháp']];
+    openPanel('THÔNG TIN XUẤT BẢN',
+      '<h3>Măng-sét / Cơ quan báo chí</h3>'+input('masthead','Tên tòa soạn')+
+      '<label>Logo / Măng-sét ảnh<input id="ec-masthead-file" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
+      '<p class="ec-small" id="ec-masthead-status">'+esc(p.masthead_logo_name||'Chưa có logo — hiển thị tên tòa soạn.')+'</p>'+
+      '<label><input id="ec-masthead-visible" type="checkbox"'+(p.masthead_visible!==false?' checked':'')+'> Hiển thị ở đầu bài</label>'+
+      input('section','Chuyên mục')+input('authors','Tác giả')+input('editor','Biên tập')+
+      input('photos','Ảnh')+input('graphics','Đồ họa')+
+      '<label>Nguồn tài liệu<input data-footer="sources" value="'+esc(f.sources||'')+'"></label>'+
+      '<details class="ec-publication-extra"><summary>Thông tin mở rộng</summary>'+
+      extra.map(([k,l])=>k==='sapo'?'<label>'+l+'<textarea data-pub="'+k+'" rows="3">'+esc(p[k]||'')+'</textarea></label>':input(k,l)).join('')+
+      footerExtra.map(([k,l])=>'<label>'+l+'<input data-footer="'+k+'" value="'+esc(f[k]||'')+'"></label>').join('')+
+      '<label>Tiêu đề chia sẻ<input data-share="title" value="'+esc(sh.title||'')+'"></label>'+
+      '<label>Mô tả chia sẻ<textarea data-share="description" rows="3">'+esc(sh.description||'')+'</textarea></label>'+
+      '<label>Ảnh chia sẻ<input data-share="thumbnail" value="'+esc(sh.thumbnail||'')+'"></label>'+
+      '<label>Liên kết chuẩn<input data-share="canonical" value="'+esc(sh.canonical||'')+'"></label>'+
+      '<button type="button" id="ec-masthead-remove">BỎ LOGO</button></details>'+
+      '<div class="ec-asset-input-actions"><button id="ec-publication-save" type="button">LƯU</button><button id="ec-publication-cancel" type="button">HỦY</button></div>');
+    const fileInput=panel.querySelector('#ec-masthead-file');
+    fileInput.addEventListener('change',()=>{const file=fileInput.files[0];if(file)panel.querySelector('#ec-masthead-status').textContent=file.name;});
+    let removeLogo=false;
+    panel.querySelector('#ec-masthead-remove').addEventListener('click',()=>{removeLogo=true;fileInput.value='';panel.querySelector('#ec-masthead-status').textContent='Sẽ dùng tên tòa soạn thay logo.';});
+    panel.querySelector('#ec-publication-save').addEventListener('click',async()=>{
+      const logoFile=fileInput.files[0];
+      let logoData=null;
+      if(logoFile){
+        if(logoFile.size>1024*1024){panel.querySelector('#ec-masthead-status').textContent='Logo tối đa 1 MB. Vui lòng chọn ảnh nhỏ hơn.';return;}
+        try{logoData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(logoFile);});}
+        catch(e){panel.querySelector('#ec-masthead-status').textContent='Không thể đọc tệp logo.';return;}
+      }
+      checkpoint();
+      panel.querySelectorAll('[data-pub]').forEach(el=>state.publication[el.dataset.pub]=el.value.trim());
+      panel.querySelectorAll('[data-footer]').forEach(el=>state.footer[el.dataset.footer]=el.value.trim());
+      panel.querySelectorAll('[data-share]').forEach(el=>state.share[el.dataset.share]=el.value.trim());
+      state.publication.masthead_visible=panel.querySelector('#ec-masthead-visible').checked;
+      if(removeLogo){state.publication.masthead_logo_data='';state.publication.masthead_logo_name='';}
+      if(logoData){state.publication.masthead_logo_data=logoData;state.publication.masthead_logo_name=logoFile.name;}
+      ['authors','editor','photos','graphics'].forEach(k=>state.footer[k]=state.publication[k]);
+      const h1Field=[...fields.values()].find(x=>x.node.matches('#s00 h1'));
+      const dekField=[...fields.values()].find(x=>x.node.matches('#s00 .dek'));
+      for(const [field,value] of [[h1Field,state.publication.title],[dekField,state.publication.sapo]]){
+        if(!field)continue;
+        if(value===field.baseline)delete state.text[field.id];
+        else state.text[field.id]={fieldId:field.id,path:field.path,section:field.section,before:field.baseline,after:value,policy:'EDITABLE',timestamp:now(),reason:'Đồng bộ thông tin xuất bản',previewOnly:false};
+      }
+      renderAll();refresh();closePanel();showNotice('Đã cập nhật thông tin xuất bản.');
+    });
+    panel.querySelector('#ec-publication-cancel').addEventListener('click',closePanel);
   };
 
   const currentDiffs=()=>{
