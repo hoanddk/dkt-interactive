@@ -172,6 +172,7 @@
   baseline.interactive.B06=captureB06(); state.interactive.B06=clone(baseline.interactive.B06);
 
   const heroCaption=document.querySelector('#s00 figcaption')?.textContent.trim()||'';
+  const b01Placeholder=document.querySelector('#remains .placeholder-label');if(b01Placeholder)b01Placeholder.textContent='Chưa có ảnh chính';
   baseline.media.HERO_MEDIA=emptyMedia('HERO_MEDIA',heroCaption);
   baseline.media.B03_GRAPHIC_REPLACEMENT=emptyMedia('B03_GRAPHIC_REPLACEMENT','');
   ['B01_BACKGROUND','B05_MODEL_A','B05_MODEL_B','B05_MODEL_C','B07_SCHEMATIC'].forEach(id=>baseline.media[id]=emptyMedia(id,''));
@@ -407,11 +408,42 @@
     panel.querySelector('#b03-save').addEventListener('click',()=>{checkpoint();const next={project:panel.querySelector('#b03-project').value.trim(),foundation:panel.querySelector('#b03-foundation').value.trim(),hall:panel.querySelector('#b03-hall').value.trim(),court:panel.querySelector('#b03-court').value.trim(),note:panel.querySelector('#b03-note').value.trim(),aria:panel.querySelector('#b03-aria').value.trim(),reason:panel.querySelector('#b03-reason').value.trim(),timestamp:now(),evidence_impact:'EVIDENCE_SUPPORTING'};const before=baseline.structured.B03;const numberChanged=['project','foundation','hall','court'].some(k=>(next[k].match(/[\d.,]+/g)||[]).join('|')!==(before[k].match(/[\d.,]+/g)||[]).join('|'));if(numberChanged)next.evidence_impact='EVIDENCE_AFFECTING';state.structured.B03=next;applyB03();refresh();closePanel();showNotice(numberChanged?'Đã lưu. Thay đổi số liệu được đánh dấu cần duyệt bằng chứng.':'Đã lưu nội dung đồ họa; bố cục và tương tác được giữ nguyên.');});
     panel.querySelector('#b03-replace').addEventListener('click',()=>openMedia('B03_GRAPHIC_REPLACEMENT',{title:'THAY TOÀN BỘ ĐỒ HỌA — B03',evidenceImpact:'EVIDENCE_SUPPORTING'}));panel.querySelector('#b03-cancel').addEventListener('click',closePanel);
   };
-  const openB01=(selected=0)=>{
-    const data=state.interactive.B01; if(!data)return; const item=data.items[selected]||data.items[0];
-    openPanel('CHỈNH THÀNH PHẦN TƯƠNG TÁC — B01','<p class="ec-type-badge">THÀNH PHẦN TƯƠNG TÁC</p><p class="ec-item-nav">'+data.items.map((x,i)=>'<button type="button" data-b01-item="'+i+'"'+(i===selected?' class="active"':'')+'>ĐIỂM TƯƠNG TÁC '+(i+1)+'</button>').join('')+'</p><div id="b01-item-form"></div>');
-    const renderForm=idx=>{const x=state.interactive.B01.items[idx];const form=panel.querySelector('#b01-item-form');form.innerHTML='<h3>ĐIỂM TƯƠNG TÁC '+(idx+1)+'</h3><p class="ec-locked-note">Trạng thái bằng chứng: Lớp '+esc(x.evidence_level)+' — khóa logic, không đổi tại đây.</p><label>Tiêu đề<input id="b01-title" value="'+esc(x.title)+'"></label><label>Nội dung chính<textarea id="b01-known" rows="4">'+esc(x.known)+'</textarea></label><label>Giới hạn / điều chưa thể kết luận<textarea id="b01-limit" rows="4">'+esc(x.limit)+'</textarea></label><label>Ghi chú<textarea id="b01-note" rows="3">'+esc(x.note)+'</textarea></label><label>Trạng thái hiển thị<select id="b01-status"><option>Đang dùng</option><option>Ẩn tạm</option><option>Chờ bổ sung nghiên cứu</option></select></label><label>Lý do thay đổi<input id="b01-reason" value="'+esc(x.reason||'')+'"></label><div class="ec-b01-media-slot" data-item="'+idx+'"></div><div class="ec-asset-input-actions"><button id="b01-media" type="button">CHỈNH MEDIA CỦA ĐIỂM</button><button id="b01-save" type="button">LƯU ĐIỂM TƯƠNG TÁC</button><button id="b01-cancel" type="button">HỦY</button></div><details class="ec-asset-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre>visual_type: INTERACTIVE_COMPONENT\ncomponent_id: B01_REMAINS_VISUAL\nitem_id: '+esc(x.id)+'\nevidence_level: '+esc(x.evidence_level)+'</pre></details>';form.querySelector('#b01-status').value=x.status;renderMediaSummary(x.id,form.querySelector('.ec-b01-media-slot'));form.querySelector('#b01-media').addEventListener('click',()=>openMedia(x.id,{title:'CHỈNH MEDIA — ĐIỂM TƯƠNG TÁC '+(idx+1),evidenceImpact:'EVIDENCE_SUPPORTING'}));form.querySelector('#b01-save').addEventListener('click',()=>{checkpoint();const y=state.interactive.B01.items[idx];Object.assign(y,{title:form.querySelector('#b01-title').value.trim(),known:form.querySelector('#b01-known').value.trim(),limit:form.querySelector('#b01-limit').value.trim(),note:form.querySelector('#b01-note').value.trim(),status:form.querySelector('#b01-status').value,reason:form.querySelector('#b01-reason').value.trim(),timestamp:now()});renderB01Card(idx);refresh();closePanel();showNotice('Đã lưu điểm tương tác '+(idx+1)+'. Mức bằng chứng vẫn được khóa.');});form.querySelector('#b01-cancel').addEventListener('click',closePanel);};
-    panel.querySelectorAll('[data-b01-item]').forEach(btn=>btn.addEventListener('click',()=>openB01(Number(btn.dataset.b01Item))));renderForm(selected);
+  // UX-31: ONE component editor for B01 background + all three hotspots.
+  // The immutable hotspot keys, positions and evidence levels never enter this form.
+  const openB01=()=>{
+    const data=state.interactive.B01;if(!data)return;
+    const fileControl=(id,label)=>'<label>'+label+'<input type="file" accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" data-b01-file="'+esc(id)+'"></label>';
+    const field=(idx,key,label,rows=0)=>{
+      const item=data.items[idx],value=item[key]||'';
+      return '<label>'+label+(rows?'<textarea rows="'+rows+'" data-b01-field="'+idx+':'+key+'">'+esc(value)+'</textarea>':'<input data-b01-field="'+idx+':'+key+'" value="'+esc(value)+'">')+'</label>';
+    };
+    openPanel('ĐỒ HỌA TƯƠNG TÁC — B01',
+      '<h3>Ảnh chính</h3>'+fileControl('B01_BACKGROUND','Tải ảnh / Thay ảnh chính')+
+      '<p class="ec-small">'+(state.media.B01_BACKGROUND?.file_name?'Đang dùng: '+esc(state.media.B01_BACKGROUND.file_name):'Chưa có ảnh chính')+'</p>'+
+      data.items.map((item,i)=>'<section class="ec-b01-group"><h3>ĐIỂM TƯƠNG TÁC '+(i+1)+'</h3>'+
+        field(i,'title','Tiêu đề')+field(i,'known','Nội dung',3)+field(i,'limit','Giới hạn / điều chưa thể kết luận',3)+field(i,'note','Ghi chú',2)+
+        fileControl(item.id,'Ảnh / video của điểm '+(i+1))+
+        (state.media[item.id]?.file_name?'<p class="ec-small">Đang dùng: '+esc(state.media[item.id].file_name)+'</p>':'')+
+        '</section>').join('')+
+      '<div class="ec-asset-input-actions"><button id="b01-save" type="button">LƯU THAY ĐỔI</button><button id="b01-cancel" type="button">HỦY</button></div>');
+    panel.querySelector('#b01-cancel').addEventListener('click',closePanel);
+    panel.querySelector('#b01-save').addEventListener('click',()=>{
+      const inputs=[...panel.querySelectorAll('[data-b01-field]')];
+      const files=[...panel.querySelectorAll('[data-b01-file]')].filter(x=>x.files?.length);
+      const changed=inputs.some(el=>{const [i,k]=el.dataset.b01Field.split(':');return el.value.trim()!==data.items[Number(i)][k];})||files.length>0;
+      if(!changed){closePanel();return;}
+      checkpoint();
+      inputs.forEach(el=>{const [i,k]=el.dataset.b01Field.split(':');data.items[Number(i)][k]=el.value.trim();data.items[Number(i)].timestamp=now();});
+      files.forEach(input=>{
+        const id=input.dataset.b01File,file=input.files[0],old=state.media[id]||emptyMedia(id);
+        sessionFiles.set(id,file);
+        state.media[id]={...old,file_name:file.name,file_type:file.type,file_size:file.size,media_type:file.type.startsWith('video/')?'VIDEO':'IMAGE',
+          object_url:null,preview_data:null,removed:false,evidence_impact:'EVIDENCE_SUPPORTING',review_status:'DRAFT',timestamp:now()};
+      });
+      const selected=[...document.querySelectorAll('#remains [data-hotspot]')].findIndex(x=>x.classList.contains('ec-hotspot-selected'));
+      renderB01Card(Math.max(0,selected));renderAll();refresh();closePanel();
+      showNotice('Đã cập nhật ảnh và nội dung ba điểm tương tác. Vị trí và mức bằng chứng không thay đổi.');
+    });
   };
   const openB06=(selected=0)=>{
     const data=state.interactive.B06,item=data?.items?.[selected];if(!item)return;
@@ -574,7 +606,8 @@
   const planNote=document.querySelector('#measure .plan-controls .small');if(planNote){planNote.dataset.ecCopy='B03:note:0';planNote.tabIndex=0;}
   addControl(document.querySelector('#plan-visual'),'THAY ẢNH / VIDEO',()=>openMedia('B03_GRAPHIC_REPLACEMENT',{title:'THAY ẢNH / VIDEO',evidenceImpact:'EVIDENCE_SUPPORTING'}));
   [['B01_BACKGROUND','#remains .photo-fallback',false,'EVIDENCE_SUPPORTING'],['B05_MODEL_A','#model-a .model-schematic',true,'EVIDENCE_AFFECTING'],['B05_MODEL_B','#model-b .model-schematic',true,'EVIDENCE_AFFECTING'],['B05_MODEL_C','#model-c .model-schematic',true,'EVIDENCE_AFFECTING'],['B07_SCHEMATIC','#preserve .technical-fallback',false,'EVIDENCE_SUPPORTING']].forEach(([id,selector,hold,impact])=>{const el=document.querySelector(selector);if(!el)return;el.classList.add('ec-media-click');el.tabIndex=0;el.setAttribute('aria-label','Thay ảnh hoặc video');el.addEventListener('click',e=>{if(e.target.closest('button'))return;openMedia(id,{title:'THAY ẢNH / VIDEO',hold,evidenceImpact:impact});});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openMedia(id,{title:'THAY ẢNH / VIDEO',hold,evidenceImpact:impact});}});});
-  // Existing multi-field controls remain available under advanced tooling only.
+  addControl(document.querySelector('#remains .hotspot-stage'),'CHỈNH ĐỒ HỌA TƯƠNG TÁC',openB01);
+  document.querySelector('#remains .photo-fallback')?.addEventListener('click',e=>{if(e.target.closest('button'))return;openB01();});
   // Click visible explanation copy; double-click the step label to edit it.
 
   document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);}))); 
