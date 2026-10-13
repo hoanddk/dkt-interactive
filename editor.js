@@ -219,7 +219,7 @@
   };
   const renderB01Card=(idx)=>{
     const card=document.querySelector('#hotspot-card'), item=state.interactive.B01?.items?.[idx]; if(!card||!item)return;
-    card.innerHTML='<h3 data-ec-copy="B01:title:'+idx+'">'+esc(item.title)+'</h3><p data-ec-copy="B01:known:'+idx+'"><strong>'+esc(item.known_label)+'</strong> '+esc(item.known)+'</p><p data-ec-copy="B01:limit:'+idx+'"><strong>'+esc(item.limit_label)+'</strong> '+esc(item.limit)+'</p>'+(item.note?'<p class="small" data-ec-copy="B01:note:'+idx+'">'+esc(item.note)+'</p>':'')+'<button type="button" class="ec-hotspot-context-action" data-ec-hotspot-edit="'+idx+'">SỬA NỘI DUNG</button>';
+    card.innerHTML='<h3 data-ec-copy="B01:title:'+idx+'">'+esc(item.title)+'</h3><p data-ec-copy="B01:known:'+idx+'"><strong>'+esc(item.known_label)+'</strong> '+esc(item.known)+'</p><p data-ec-copy="B01:limit:'+idx+'"><strong>'+esc(item.limit_label)+'</strong> '+esc(item.limit)+'</p>'+(item.note?'<p class="small" data-ec-copy="B01:note:'+idx+'">'+esc(item.note)+'</p>':'')+'<button type="button" class="ec-hotspot-context-action" data-ec-hotspot-media="'+idx+'">THAY ẢNH / VIDEO</button>';
   };
   const applyB06=(selectedKey=null)=>{
     const data=state.interactive.B06; if(!data)return;
@@ -483,6 +483,7 @@
 
   main.addEventListener('click',e=>{
     const mapped=e.target.closest('[data-ec-copy]');if(mapped){const [kind,key,idx]=mapped.dataset.ecCopy.split(':');if(kind==='B03'||kind==='B01'||kind==='B06'){e.preventDefault();e.stopPropagation();openMappedCopy(kind,key,Number(idx||0));return;}}
+    const hotspotMedia=e.target.closest('[data-ec-hotspot-media]');if(hotspotMedia){e.preventDefault();const idx=Number(hotspotMedia.dataset.ecHotspotMedia);const item=state.interactive.B01?.items?.[idx];if(item)openMedia(item.id,{title:'THAY ẢNH / VIDEO',evidenceImpact:'EVIDENCE_SUPPORTING'});return;}
     const hotspotEdit=e.target.closest('[data-ec-hotspot-edit]');if(hotspotEdit){e.preventDefault();openB01(Number(hotspotEdit.dataset.ecHotspotEdit));return;}
     const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||field.policy==='LOCKED'||field.interactiveControl)return;e.preventDefault();beginText(field);
   });
