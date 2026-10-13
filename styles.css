@@ -506,3 +506,14 @@ h3{
     transition-duration:.01ms!important
   }
 }
+
+
+/* F-EDITOR-UX-05: reader masthead, section and byline. */
+.ec-masthead-logo{display:block;max-width:13rem;max-height:3.5rem;object-fit:contain}
+.ec-masthead-logo[hidden]{display:none!important}
+.ec-publication-section{font:750 .76rem/1.5 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:#75644d;margin:0 0 .6rem}
+.ec-publication-byline{font:600 .9rem/1.5 var(--font-ui);color:#75644d;margin:.9rem 0}
+.ec-replaced-visual{position:relative}
+.ec-replaced-visual.model-schematic{font-size:0}
+.ec-replaced-visual.technical-fallback > div{display:none}
+.ec-replaced-visual .ec-preview-image,.asset-frame .ec-preview-image{display:block;width:100%;height:auto;max-height:40rem;object-fit:contain}
