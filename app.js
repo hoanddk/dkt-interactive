@@ -182,6 +182,19 @@
     if(b03&&plan){[['project','project'],['foundation','foundation'],['hall','hall'],['court','court']].forEach(([k,c])=>{const el=plan.querySelector('.'+c+' span');if(el)el.textContent=b03[k];});const note=document.querySelector('#measure .plan-controls .small');if(note)note.textContent=b03.note;plan.setAttribute('aria-label',b03.aria||plan.getAttribute('aria-label'));}
     const b01=draft.interactive?.B01;
     if(b01?.items)document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b01.items[i];if(x&&x.status!=='Ẩn tạm')renderHotspotCard(x);}))); 
+    const history=draft.interactive?.HISTORY;
+    if(history?.items?.length){
+      history.items.forEach(item=>{
+        const tab=[...document.querySelectorAll('.layer-stack .layer')].find(x=>x.dataset.layer===item.key);
+        if(tab)tab.textContent=item.label;
+        layerInfo[item.key]=[item.intro,item.limit];
+      });
+      document.querySelectorAll('.layer-stack .layer').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>{
+        const item=history.items.find(x=>x.key===btn.dataset.layer),box=document.querySelector('#layer-info');
+        if(item&&box)box.innerHTML='<h3>'+esc(item.title)+'</h3><p><strong>Điều giúp hiểu:</strong> '+esc(item.intro)+'</p><p><strong>Không suy quá:</strong> '+esc(item.limit)+'</p>';
+      })));
+      document.querySelector('.layer-stack .layer.active')?.click();
+    }
     const b06=draft.interactive?.B06;
     if(b06?.items){b06.items.forEach(x=>{const btn=document.querySelector('#roof-case [data-reason="'+CSS.escape(x.key)+'"]');if(btn)btn.textContent=x.label;});document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b06.items.find(i=>i.key===btn.dataset.reason),box=document.getElementById('reason-info');if(x&&box)box.innerHTML='<h3>'+esc(x.title)+'</h3><p>'+esc(x.copy)+'</p>';})));}
     // Reader Preview uses the exact saved binary from IndexedDB, not a thumbnail
