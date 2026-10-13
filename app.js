@@ -198,7 +198,7 @@
     }
     [['B01_BACKGROUND','#remains .photo-fallback'],['B03_GRAPHIC_REPLACEMENT','#plan-visual'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>{
       const m=draft.media?.[id],target=document.querySelector(selector);
-      if(!m||!target||!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(m.preview_data||''))return;
+      if(!m||m.review_status==='HOLD_FOR_RESEARCH'||!target||!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(m.preview_data||''))return;
       target.classList.add('ec-replaced-visual');
       const img=document.createElement('img');img.src=m.preview_data;img.alt=m.decorative?'':m.alt_text||m.caption||'Ảnh minh họa';img.className='ec-preview-image';
       target.append(img);
