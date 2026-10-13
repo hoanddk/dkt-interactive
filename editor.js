@@ -227,20 +227,19 @@
     if(selectedKey){ const item=data.items.find(x=>x.key===selectedKey), box=document.querySelector('#reason-info'); if(item&&box)box.innerHTML='<h3 data-ec-copy="B06:title:'+data.items.indexOf(item)+'">'+esc(item.title)+'</h3><p data-ec-copy="B06:copy:'+data.items.indexOf(item)+'">'+esc(item.copy)+'</p>'; }
   };
   const renderMediaSummary=(slotId,target)=>{
-    if(!target)return; target.querySelectorAll(':scope > .ec-media-draft').forEach(el=>el.remove());
-    const m=state.media[slotId]; if(!m||!m.timestamp)return;
-    const wrap=document.createElement('div'); wrap.className='ec-media-draft'; wrap.dataset.mediaSlot=slotId;
-    if(m.removed){wrap.innerHTML='<p class="ec-asset-empty">Ảnh hoặc video đã được gỡ trong bản nháp.</p>';target.append(wrap);return;}
-    const file=sessionFiles.get(slotId);
-    if((file && m.object_url)||m.preview_data){
-      if(m.media_type==='VIDEO'){
-        const v=document.createElement('video'); v.src=m.object_url||''; v.controls=true; v.preload='metadata'; v.loop=!!m.loop; v.muted=!!m.autoplay; v.autoplay=!!m.autoplay; if(m.poster_url)v.poster=m.poster_url; v.className='ec-preview-video'; wrap.append(v);
-      } else { const img=document.createElement('img'); img.src=m.preview_data||m.object_url; img.alt=m.decorative?'':m.alt_text; img.className='ec-preview-image'; wrap.append(img); }
-    } else if(m.file_name){ const p=document.createElement('p'); p.className='ec-asset-empty'; p.textContent='Tệp media cần chọn lại sau khi tải lại trang.'; wrap.append(p); }
-    if(m.show_caption&&m.caption){const p=document.createElement('p');p.className='ec-reader-caption';p.textContent=m.caption;wrap.append(p);}
-    if(m.credit){const p=document.createElement('p');p.className='ec-reader-credit';p.textContent=m.credit;wrap.append(p);}
-    if(m.warnings?.length){const w=document.createElement('div');w.className='ec-media-warning';w.innerHTML='<strong>Gợi ý tối ưu</strong><ul>'+m.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';wrap.append(w);}
-    target.append(wrap);
+    if(!target)return;
+    const m=state.media[slotId];
+    if(!m?.timestamp||m.removed){
+      target.querySelectorAll(':scope > .ec-slot-media').forEach(x=>x.remove());
+      target.classList.remove('ec-has-real-media');
+      target.querySelectorAll(':scope > .placeholder-art,:scope > .placeholder-label,:scope > figcaption').forEach(x=>x.hidden=false);
+      return;
+    }
+    if(m.file_name){
+      window.__dktMediaStore.show(slotId,target,m,{file:sessionFiles.get(slotId)||null,poster:sessionPosters.get(slotId)||null})
+        .then(ok=>{if(!ok)showNotice('Không tìm thấy tệp ảnh/video của bản nháp. Vui lòng kiểm tra bộ nhớ trình duyệt.');})
+        .catch(()=>showNotice('Không thể đọc ảnh/video đã lưu trên trình duyệt.'));
+    }
   };
   const renderFooter=()=>{
     const footer=document.querySelector('.site-footer .wrap'); if(!footer)return; const f=state.footer;
@@ -382,7 +381,7 @@
     q('ec-media-save').addEventListener('click',async()=>{q('ec-media-save').disabled=true;
       checkpoint(); const old=state.media[slotId]||emptyMedia(slotId,''); const removed=q('ec-media-file').dataset.removed==='1'; const file=candidate; const mediaType=removed?old.media_type:(q('ec-media-file').dataset.mediaType||old.media_type||'IMAGE');
       const next={...old,slot_id:slotId,media_type:mediaType,asset_type:q('ec-media-asset-type').value,representation_status:q('ec-media-representation').value,file_name:removed?null:(file?.name||old.file_name),file_type:removed?null:(file?.type||old.file_type),file_size:removed?0:(file?.size||old.file_size||0),object_url:removed?null:(candidateUrl||old.object_url),poster_name:poster?.name||old.poster_name,poster_url:posterUrl||old.poster_url,caption:q('ec-media-caption').value.trim(),show_caption:q('ec-media-show-caption').checked,credit:q('ec-media-credit').value.trim(),source_context:q('ec-media-source').value.trim(),alt_text:q('ec-media-alt').value.trim(),decorative:q('ec-media-decorative').checked,aspect_ratio:q('ec-media-ratio').value,autoplay:q('ec-media-autoplay')?.checked||false,loop:q('ec-media-loop')?.checked||false,subtitle_name:q('ec-media-subtitle')?.files?.[0]?.name||old.subtitle_name,duration:meta.duration,width:meta.width,height:meta.height,change_reason:q('ec-media-reason').value.trim(),removed,evidence_impact:(()=>{const ranks={PRESENTATION_ONLY:0,EVIDENCE_SUPPORTING:1,EVIDENCE_AFFECTING:2,CLAIM_AFFECTING:3};return [q('ec-media-impact').value,evidenceImpact,old.evidence_impact].reduce((a,b)=>(ranks[b]??0)>(ranks[a]??0)?b:a,'PRESENTATION_ONLY');})(),review_status:hold?'HOLD_FOR_RESEARCH':'DRAFT',timestamp:now()};
-      next.warnings=fileWarnings(next); if(file && file.type.startsWith('image/') && file.size<=1024*1024){try{next.preview_data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=reject;reader.readAsDataURL(file);});}catch(e){next.preview_data=null;}} else if(file){next.preview_data=null;} state.media[slotId]=next; if(file)sessionFiles.set(slotId,file);else if(removed)sessionFiles.delete(slotId); if(poster)sessionPosters.set(slotId,poster); renderAll();refresh();closePanel();showNotice('Đã lưu ảnh hoặc video vào bản nháp. Hãy kiểm tra quyền sử dụng trước khi xuất bản.');
+      next.warnings=fileWarnings(next);next.preview_data=null;next.object_url=null;next.poster_url=null;next.binary_reselect_required=false;state.media[slotId]=next; if(file)sessionFiles.set(slotId,file);else if(removed)sessionFiles.delete(slotId); if(poster)sessionPosters.set(slotId,poster); renderAll();refresh();closePanel();showNotice('Đã lưu ảnh hoặc video vào bản nháp. Hãy kiểm tra quyền sử dụng trước khi xuất bản.');
     });
     q('ec-media-file').focus();
   };
@@ -476,7 +475,30 @@
   const openHistory=()=>{
     const rows=currentDiffs(); openPanel('LỊCH SỬ CHỈNH SỬA',rows.length?rows.map(r=>'<article class="ec-diff"><h3>'+esc(r.title)+'</h3><div class="ec-before"><strong>TRƯỚC</strong><p>'+esc(r.before)+'</p></div><div class="ec-after"><strong>SAU</strong><p>'+esc(r.after)+'</p></div>'+(r.reason?'<p><strong>Lý do:</strong> '+esc(r.reason)+'</p>':'')+'<p class="ec-small">'+esc(r.time||'Chưa lưu thời điểm')+'</p><details class="ec-asset-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre>'+esc(JSON.stringify(r.technical,null,2))+'</pre></details></article>').join(''):'<p>Chưa có thay đổi so với bản gốc.</p>');
   };
-  const saveDraft=()=>{if(activeText)stopText(true);try{const payload={schema:'interactive-editorial-console/v0.4',branch:BRANCH,savedAt:now(),state:clone(state)};Object.values(payload.state.media).forEach(m=>{m.object_url=null;m.poster_url=null;if(m.file_name)m.binary_reselect_required=true;});localStorage.setItem(STORAGE,JSON.stringify(payload));savedState=serial();refresh();showNotice('Đã lưu nháp trên trình duyệt này. Tệp media cần chọn lại sau khi tải lại.');}catch(e){showNotice('Không thể lưu nháp vào trình duyệt. Hãy dùng Xuất gói thay đổi.');}};
+  const saveDraft=async()=>{
+    if(activeText)stopText(true);
+    const button=bar.querySelector('[data-ec-action="save"]');button.disabled=true;
+    try{
+      const store=window.__dktMediaStore;
+      if(!store)throw new Error('Kho tệp nháp chưa sẵn sàng.');
+      for(const [id,m] of Object.entries(state.media)){
+        if(!m.file_name||m.removed)continue;
+        let blob=sessionFiles.get(id),poster=sessionPosters.get(id)||null;
+        if(!blob&&m.preview_data?.startsWith('data:')){
+          blob=await (await fetch(m.preview_data)).blob();
+          sessionFiles.set(id,blob);
+        }
+        if(blob)await store.put(id,blob,poster);
+        else if(!(await store.verify(id)))throw new Error('Thiếu tệp đã chọn cho '+id+'. Không thể lưu nháp.');
+      }
+      for(const m of Object.values(state.media)){m.object_url=null;m.poster_url=null;m.preview_data=null;m.binary_reselect_required=false;}
+      const payload={schema:'interactive-editorial-console/v0.4',branch:BRANCH,savedAt:now(),state:clone(state)};
+      localStorage.setItem(STORAGE,JSON.stringify(payload));
+      savedState=serial();refresh();showNotice('Đã lưu toàn bộ bản nháp, gồm ảnh và video, trên trình duyệt này.');
+      return true;
+    }catch(e){showNotice('Không lưu được bản nháp: '+(e.message||'bộ nhớ trình duyệt không khả dụng')+'. Không có xác nhận lưu giả.');return false;}
+    finally{button.disabled=false;}
+  };
   const undo=()=>{if(activeText)stopText(true);if(!undoStack.length)return;redoStack.push(sessionSnapshot());restoreSession(undoStack.pop());showNotice('Đã hoàn tác.');};
   const redo=()=>{if(activeText)stopText(true);if(!redoStack.length)return;undoStack.push(sessionSnapshot());restoreSession(redoStack.pop());showNotice('Đã làm lại.');};
   const restoreBaseline=()=>{if(!confirm('Khôi phục toàn bộ bản gốc trong phiên biên tập này?'))return;checkpoint();Object.keys(state.text).forEach(k=>delete state.text[k]);state.publication=clone(baseline.publication);state.footer=clone(baseline.footer);state.share=clone(baseline.share);state.structured=clone(baseline.structured);state.interactive=clone(baseline.interactive);state.media=clone(baseline.media);sessionFiles.clear();sessionPosters.clear();renderAll();refresh();showNotice('Đã khôi phục bản gốc trong trình duyệt.');};
@@ -510,6 +532,7 @@
 
   document.querySelector('.site-header strong')?.addEventListener('click',()=>openPublicationCopy('masthead'));
   document.querySelector('.site-header .ec-masthead-logo')?.addEventListener('click',openPublication);
+  previewLink.addEventListener('click',async e=>{e.preventDefault();if(panelOpen)closePanel();const tab=window.open('about:blank','_blank');const ok=await saveDraft();if(ok){if(tab)tab.location.href=previewUrl.toString();else location.assign(previewUrl.toString());}else if(tab)tab.close();});
   bar.addEventListener('click',e=>{const b=e.target.closest('[data-ec-action]');if(!b||b.tagName==='A')return;const a=b.dataset.ecAction;if(a==='save')saveDraft();else if(a==='undo')undo();else if(a==='redo')redo();else if(a==='history')openHistory();else if(a==='publication')openPublication();else if(a==='restore')restoreBaseline();else if(a==='export')exportChanges();else if(a==='exit')exitMode();});
   panel.querySelector('#ec-close').addEventListener('click',closePanel);
   document.addEventListener('keydown',e=>{
@@ -518,8 +541,10 @@
   });
   window.addEventListener('beforeunload',e=>{if(isDirty()){e.preventDefault();e.returnValue='';}});
 
-  try{const raw=localStorage.getItem(STORAGE);if(raw){const payload=JSON.parse(raw);if(payload.schema==='interactive-editorial-console/v0.4'&&payload.branch===BRANCH){Object.assign(state,payload.state||{});Object.values(state.media||{}).forEach(m=>{m.object_url=null;m.poster_url=null;});savedState=serial();showNotice('Đã nạp bản nháp local. Tệp media cần chọn lại nếu đã thay.');}}}catch(e){showNotice('Không thể nạp bản nháp local.');}
+  try{const raw=localStorage.getItem(STORAGE);if(raw){const payload=JSON.parse(raw);if(payload.schema==='interactive-editorial-console/v0.4'&&payload.branch===BRANCH){Object.assign(state,payload.state||{});Object.values(state.media||{}).forEach(m=>{m.object_url=null;m.poster_url=null;});savedState=serial();showNotice('Đã nạp bản nháp. Đang kiểm tra các tệp ảnh và video đã lưu.');}}}catch(e){showNotice('Không thể nạp bản nháp local.');}
   if(!savedState)savedState=serial();renderAll();refresh();
+  // Verify persisted binary on load; no phantom persistence claims.
+  Promise.all(Object.entries(state.media).filter(([,m])=>m.file_name&&!m.removed).map(async([id,m])=>{try{const rec=await window.__dktMediaStore.get(id);if(!rec?.blob)throw Error('missing');sessionFiles.set(id,rec.blob);if(rec.poster)sessionPosters.set(id,rec.poster);renderMediaSummary(id,document.querySelector(({HERO_MEDIA:'#s00 .asset-frame',B01_BACKGROUND:'#remains .photo-fallback',B03_GRAPHIC_REPLACEMENT:'#plan-visual',B05_MODEL_A:'#model-a .model-schematic',B05_MODEL_B:'#model-b .model-schematic',B05_MODEL_C:'#model-c .model-schematic',B07_SCHEMATIC:'#preserve .technical-fallback'})[id]||'#hotspot-card'));}catch(e){showNotice('Bản nháp có tham chiếu media nhưng thiếu tệp gốc. Không thể xem trước đầy đủ.');}}));
   window.__editorialConsoleV04={version:'0.1.4',state,getChanges:currentDiffs,undo,redo,saveDraft,openHistory,openPublication,openB03,openB01,openB06,openMedia,isDirty};
   window.__editorialAssets={getChanges:()=>currentDiffs().filter(x=>x.kind==='media'),hasChanges:()=>Object.values(state.media).some(m=>m.timestamp),canUndo:()=>undoStack.length>0,canRedo:()=>redoStack.length>0,isDirty,saveDraft,restoreAll:restoreBaseline,undo,redo,compareHtml:()=>'',slots:Object.keys(state.media)};
 })();
