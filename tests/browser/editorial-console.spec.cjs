@@ -416,3 +416,48 @@ test('41 Editor canvas shows one research warning per held block',async ({page})
   }
   const visible=await page.locator('main').innerText();expect(visible).not.toContain('HOLD_FOR_RESEARCH');
 });
+
+test('42 Headline sapo and paragraph share one copy editor',async ({page})=>{
+  await editVisible(page,'#s00 h1','QA — Tiêu đề thống nhất');
+  await editVisible(page,'#s00 .dek','QA — Sapo thống nhất');
+  await editVisible(page,'#remains .narrow > p:not(.block-id):not(.small)','QA — Đoạn văn thống nhất');
+  await expect(page.locator('#editor-panel')).toBeHidden();
+});
+test('43 Hero image persists into saved reader preview',async ({page})=>{
+  await openHeroMedia(page);
+  await page.locator('#ec-media-file').setInputFiles(file('hero-preview.png'));
+  await page.locator('#ec-media-caption').fill('Chú thích ảnh xem trước');
+  await page.locator('#ec-media-show-caption').check();
+  await page.locator('#ec-media-save').click();
+  await expect(page.locator('#s00 .ec-media-draft .ec-preview-image')).toBeVisible();
+  await action(page,'save').click();await page.goto('/?preview=1');
+  await expect(page.locator('#s00 .asset-frame > .ec-preview-image')).toBeVisible();
+  await expect(page.locator('#s00 figcaption')).toContainText('Chú thích ảnh xem trước');
+});
+test('44 Tab and verb labels are editable but interaction keys stay fixed',async ({page})=>{
+  const tab=page.locator('#tab-a');await tab.dblclick();
+  await page.locator('#ec-copy-input').fill('QA — Mô hình A');await page.locator('#ec-copy-save').click();
+  await expect(tab).toHaveText('QA — Mô hình A');
+  const verb=page.locator('#control-gates [data-verb="requests"]');await verb.dblclick();
+  await page.locator('#ec-copy-input').fill('QA — yêu cầu');
+  await page.locator('#ec-copy-save').click();
+  await expect(verb).toHaveAttribute('data-verb','requests');
+  await expect(verb).toHaveText('QA — yêu cầu');
+  await expect(page.locator('#control-gates .ec-block-warning')).toHaveCount(1);
+});
+test('45 Masthead section can be edited directly on the canvas',async ({page})=>{
+  await editVisible(page,'.ec-publication-section','QA — CHUYÊN MỤC');
+  await expect(page.locator('.ec-publication-section')).toHaveText('QA — CHUYÊN MỤC');
+  await action(page,'undo').click();
+  await expect(page.locator('.ec-publication-section')).toHaveText('Bài tương tác');
+});
+test('46 HOLD image remains editorial-only in reader preview',async ({page})=>{
+  await page.locator('#model-a .model-schematic').click();
+  await page.locator('#ec-media-file').setInputFiles(file('hold-model.png'));
+  await page.locator('#ec-media-save').click();
+  const m=await page.evaluate(()=>window.__editorialConsoleV04.state.media.B05_MODEL_A);
+  expect(m.review_status).toBe('HOLD_FOR_RESEARCH');
+  expect(m.evidence_impact).toBe('EVIDENCE_AFFECTING');
+  await action(page,'save').click();await page.goto('/?preview=1');
+  await expect(page.locator('#model-a .ec-preview-image')).toHaveCount(0);
+});
