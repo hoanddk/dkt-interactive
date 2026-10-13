@@ -672,7 +672,7 @@
   document.querySelector('#remains .photo-fallback')?.addEventListener('click',e=>{if(e.target.closest('button'))return;openB01();});
   // Click visible explanation copy; double-click the step label to edit it.
 
-  document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);}))); 
+  document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);})); 
   document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB06(btn.dataset.reason))));
   document.querySelectorAll('.layer-stack .layer').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyHistory(btn.dataset.layer))));
   document.querySelectorAll('#control-gates [data-verb]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB08(btn.dataset.verb))));
