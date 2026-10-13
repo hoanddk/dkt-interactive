@@ -10,7 +10,7 @@ async function cleanEdit(page){
   await page.evaluate(()=>localStorage.clear());
   await page.goto('/?edit=1');
   await expect(page.locator('#editor-console')).toBeVisible();
-  await expect(page.locator('#editor-console')).toContainText('BẢNG BIÊN TẬP INTERACTIVE');
+  await expect(page.locator('#editor-console')).toContainText('BẢNG BIÊN TẬP BÀI TƯƠNG TÁC');
 }
 async function editVisible(page,selector,text){
   const target=page.locator(selector);
@@ -286,6 +286,9 @@ test('28 video slot smoke test exposes practical options and soft guidance', asy
   await openHeroMedia(page);
   await page.locator('#ec-media-file').setInputFiles(file('clip.mp4','video/mp4',Buffer.alloc(2048)));
   await expect(page.locator('.ec-video-options')).toBeVisible();
+  await expect(page.locator('#ec-media-poster')).toBeVisible();
+  await expect(page.locator('#ec-media-ratio')).toBeHidden();
+  await page.locator('.ec-video-advanced summary').click();
   await expect(page.locator('#ec-media-ratio')).toBeVisible();
   await expect(page.locator('#ec-media-autoplay')).toBeVisible();
   await expect(page.locator('#ec-media-loop')).toBeVisible();
