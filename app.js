@@ -239,7 +239,7 @@
     // Missing-image placeholders are editor hints, never public article copy.
     document.querySelectorAll('.placeholder-label').forEach(el=>el.hidden=true);
     document.querySelectorAll('.model-schematic').forEach(el=>{
-      if(/SƠ ĐỒ BIÊN TẬP|PHƯƠNG ÁN THAY THẾ/.test(el.textContent||''))el.classList.add('ec-editorial-placeholder');
+      if(/SƠ ĐỒ BIÊN TẬP|PHƯƠNG ÁN THAY THẾ/.test(el.textContent||'')){el.childNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE)n.nodeValue='';});el.setAttribute('aria-label','Hình ảnh minh họa chưa được bổ sung');}
     });
     document.querySelectorAll('.placeholder-art').forEach(el=>{
       el.querySelectorAll('span').forEach(label=>{
