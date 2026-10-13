@@ -236,7 +236,16 @@
         else el.hidden=true;
       }
     });
-    document.querySelectorAll('.placeholder-label').forEach(el=>{if(!el.closest('.ec-has-real-media'))el.textContent='Chưa có ảnh chính';});
+    // Missing-image placeholders are editor hints, never public article copy.
+    document.querySelectorAll('.placeholder-label').forEach(el=>el.hidden=true);
+    document.querySelectorAll('.model-schematic').forEach(el=>{
+      if(/SƠ ĐỒ BIÊN TẬP|PHƯƠNG ÁN THAY THẾ/.test(el.textContent||''))el.classList.add('ec-editorial-placeholder');
+    });
+    document.querySelectorAll('.placeholder-art').forEach(el=>{
+      el.querySelectorAll('span').forEach(label=>{
+        if(/ĐỒ HỌA BIÊN TẬP/.test(label.textContent||''))label.textContent='Hình minh họa';
+      });
+    });
   }
 
   // Data-driven footer. Empty optional rows render nothing.
