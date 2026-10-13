@@ -219,7 +219,8 @@
   };
   const renderB01Card=(idx)=>{
     const card=document.querySelector('#hotspot-card'), item=state.interactive.B01?.items?.[idx]; if(!card||!item)return;
-    card.innerHTML='<h3 data-ec-copy="B01:title:'+idx+'">'+esc(item.title)+'</h3><p data-ec-copy="B01:known:'+idx+'"><strong>'+esc(item.known_label)+'</strong> '+esc(item.known)+'</p><p data-ec-copy="B01:limit:'+idx+'"><strong>'+esc(item.limit_label)+'</strong> '+esc(item.limit)+'</p>'+(item.note?'<p class="small" data-ec-copy="B01:note:'+idx+'">'+esc(item.note)+'</p>':'')+'<button type="button" class="ec-hotspot-context-action" data-ec-hotspot-media="'+idx+'">THAY ẢNH / VIDEO</button>';
+    card.innerHTML='<h3 data-ec-copy="B01:title:'+idx+'">'+esc(item.title)+'</h3><p><strong>'+esc(item.known_label)+'</strong> <span data-ec-copy="B01:known:'+idx+'">'+esc(item.known)+'</span></p><p><strong>'+esc(item.limit_label)+'</strong> <span data-ec-copy="B01:limit:'+idx+'">'+esc(item.limit)+'</span></p>'+(item.note?'<p class="small" data-ec-copy="B01:note:'+idx+'">'+esc(item.note)+'</p>':'')+'<div class="ec-hotspot-media-slot" data-slot="'+esc(item.id)+'"></div>';
+    renderMediaSummary(item.id,card.querySelector('.ec-hotspot-media-slot'));
   };
   const applyB06=(selectedKey=null)=>{
     const data=state.interactive.B06; if(!data)return;
@@ -273,7 +274,7 @@
   };
   const renderPublication=()=>{document.title=state.publication.title||baseline.publication.title;renderMasthead(state.publication);renderFooter();};
 
-  const renderAll=()=>{ applyText(); applyB03(); applyB06(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
+  const renderAll=()=>{ if(activeText)return;applyText(); applyB03(); applyB06(); renderPublication(); renderMediaSummary('HERO_MEDIA',document.querySelector('#s00 .asset-frame')); renderMediaSummary('B03_GRAPHIC_REPLACEMENT',document.querySelector('#plan-visual')); [['B01_BACKGROUND','#remains .photo-fallback'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>renderMediaSummary(id,document.querySelector(selector))); state.interactive.B01?.items?.forEach((it,i)=>renderMediaSummary(it.id,document.querySelector('.ec-b01-media-slot[data-item="'+i+'"]'))); };
 
   const closePanel=()=>{ panel.hidden=true; panelOpen=false; if(lastFocused&&document.contains(lastFocused))lastFocused.focus(); };
   const openPanel=(title,html)=>{ lastFocused=document.activeElement; panel.querySelector('#ec-panel-title').textContent=title; panelBody.innerHTML=html; panel.hidden=false; panelOpen=true; panel.querySelector('#ec-close').focus(); };
@@ -287,44 +288,56 @@
     renderAll();refresh();
   };
 
-  // F-EDITOR-UX-05: one simple copy editor for all mapped visible text.
-  // Evidence/HOLD policy is stored with the change record, never promoted here.
-  const openSimpleText=({title='SỬA CÂU CHỮ',value,save,hold=false})=>{
-    openPanel(title,(hold?'<p class="ec-simple-note">⚠ Chờ bổ sung nghiên cứu. Nội dung sửa chỉ hiển thị trong phiên biên tập; không tự được duyệt xuất bản.</p>':'')+
-      '<label>Nội dung<textarea id="ec-copy-input" rows="5">'+esc(value)+'</textarea></label>'+
-      '<div class="ec-asset-input-actions"><button id="ec-copy-save" type="button">LƯU</button><button id="ec-copy-cancel" type="button">HỦY</button></div>');
-    panel.querySelector('#ec-copy-save').addEventListener('click',()=>{save(panel.querySelector('#ec-copy-input').value);closePanel();});
-    panel.querySelector('#ec-copy-cancel').addEventListener('click',closePanel);
-    panel.querySelector('#ec-copy-input').focus();
+  // UX-28: contenteditable is installed on pointerdown BEFORE the browser
+  // resolves its native selection. Never prevent pointer default/caret placement.
+  const startInline=(node,save)=>{
+    if(!node)return;
+    if(activeText?.node===node)return;
+    if(activeText)stopText(true);
+    const originalHtml=node.innerHTML;
+    activeText={node,save,originalHtml,composing:false};
+    node.contentEditable='plaintext-only';node.spellcheck=true;node.classList.add('ec-active');
+    node.setAttribute('role','textbox');node.setAttribute('aria-multiline','true');
+    node.addEventListener('compositionstart',()=>{if(activeText?.node===node)activeText.composing=true;},{once:true});
+    node.addEventListener('compositionend',()=>{if(activeText?.node===node)activeText.composing=false;},{once:true});
+  };
+  const stopText=(commit=true)=>{
+    if(!activeText)return;
+    const edit=activeText;activeText=null;
+    const value=edit.node.innerText.replace(/\r/g,'').trim();
+    edit.node.contentEditable='false';edit.node.classList.remove('ec-active');
+    edit.node.removeAttribute('role');edit.node.removeAttribute('aria-multiline');
+    if(!commit){edit.node.innerHTML=edit.originalHtml;return;}
+    edit.save(value);
   };
   const beginText=field=>{
-    if(!field||field.policy==='LOCKED')return;
-    openSimpleText({value:state.text[field.id]?.after||field.baseline,hold:field.policy==='HOLD_FOR_RESEARCH'||field.policy==='REVIEW_REQUIRED',save:v=>setText(field,v)});
+    if(!field||field.policy==='LOCKED'||field.interactiveControl)return;
+    startInline(field.node,v=>setText(field,v));
   };
-  const stopText=()=>{};
   const openProposal=beginText;
   const updateB03Copy=(key,value)=>{
     const d=state.structured.B03;if(!d||!(key in d))return;
-    const cleaned=value.trim();if(cleaned===d[key])return;
+    const cleaned=value.trim();if(cleaned===d[key]){applyB03();return;}
     checkpoint();d[key]=cleaned;d.timestamp=now();
     const before=baseline.structured.B03;
     const numericChanged=['project','foundation','hall','court'].some(k=>(d[k].match(/[\d.,]+/g)||[]).join('|')!==(before[k].match(/[\d.,]+/g)||[]).join('|'));
     d.evidence_impact=numericChanged?'EVIDENCE_AFFECTING':'EVIDENCE_SUPPORTING';
     applyB03();refresh();
   };
-  const openMappedCopy=(kind,key,index=0)=>{
-    if(kind==='B03'){
-      const d=state.structured.B03;if(!d)return;
-      openSimpleText({value:d[key],save:v=>updateB03Copy(key,v)});return;
-    }
+  const saveMappedCopy=(kind,key,index,value)=>{
+    if(kind==='B03')return updateB03Copy(key,value);
     const data=state.interactive[kind],item=data?.items?.[index];if(!item||!(key in item))return;
-    openSimpleText({value:item[key],save:v=>{
-      const cleaned=v.trim();if(cleaned===item[key])return;
-      checkpoint();item[key]=cleaned;item.timestamp=now();
-      if(kind==='B01')renderB01Card(index);
-      if(kind==='B06')applyB06(item.key);
-      refresh();
-    }});
+    const cleaned=value.trim();if(cleaned===item[key])return;
+    checkpoint();item[key]=cleaned;item.timestamp=now();
+    if(kind==='B01')renderB01Card(index);
+    if(kind==='B06')applyB06(item.key);
+    if(kind==='HISTORY')applyHistory(item.key);
+    refresh();
+  };
+  const openMappedCopy=(kind,key,index=0,node=null)=>{
+    const el=node||document.querySelector('[data-ec-copy="'+kind+':'+key+':'+index+'"]');
+    if(!el)return;
+    startInline(el,v=>saveMappedCopy(kind,key,index,v));
   };
   const researchWarning=(section,details)=>{
     if(!section||section.querySelector('.ec-block-warning'))return;
@@ -505,17 +518,54 @@
   const exportChanges=()=>{const payload={schema:'interactive-editorial-changeset/v0.4',exportedAt:now(),source:{repository:'hoanddk/dkt-interactive',branch:BRANCH,path:'index.html'},productState:'EDITORIAL_FINISHING',editorialAccessState:'LIVE_EDIT',changes:currentDiffs(),publication:state.publication,footer:state.footer,share:state.share,review:{approved:false,mergeAllowed:false,publishAllowed:false}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='dkt-editorial-changes-'+now().slice(0,19).replace(/[:T]/g,'-')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showNotice('Đã xuất gói thay đổi kỹ thuật. Không có commit hoặc publish tự động.');};
   const exitMode=()=>{if(isDirty()&&!confirm('Có thay đổi chưa LƯU NHÁP. Thoát biên tập?'))return;const u=new URL(location.href);u.searchParams.delete('edit');u.searchParams.delete('editorial_mode');location.assign(u.toString());};
 
-  const openPublicationCopy=key=>{const value=state.publication[key]||'';openSimpleText({value,save:v=>{if(v.trim()===value)return;checkpoint();state.publication[key]=v.trim();if(key==='authors')state.footer.authors=v.trim();renderAll();refresh();}});};
-  main.addEventListener('click',e=>{
-    const pubCopy=e.target.closest('[data-ec-pub-copy]');if(pubCopy){e.preventDefault();openPublicationCopy(pubCopy.dataset.ecPubCopy);return;}
-    const mapped=e.target.closest('[data-ec-copy]');if(mapped){const [kind,key,idx]=mapped.dataset.ecCopy.split(':');if(kind==='B03'||kind==='B01'||kind==='B06'){e.preventDefault();e.stopPropagation();openMappedCopy(kind,key,Number(idx||0));return;}}
-    const hotspotMedia=e.target.closest('[data-ec-hotspot-media]');if(hotspotMedia){e.preventDefault();const idx=Number(hotspotMedia.dataset.ecHotspotMedia);const item=state.interactive.B01?.items?.[idx];if(item)openMedia(item.id,{title:'THAY ẢNH / VIDEO',evidenceImpact:'EVIDENCE_SUPPORTING'});return;}
-    const hotspotEdit=e.target.closest('[data-ec-hotspot-edit]');if(hotspotEdit){e.preventDefault();openB01(Number(hotspotEdit.dataset.ecHotspotEdit));return;}
-    const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||field.policy==='LOCKED'||field.interactiveControl)return;e.preventDefault();beginText(field);
+  const openPublicationCopy=(key,node)=>{const value=state.publication[key]||'';startInline(node||document.querySelector('[data-ec-pub-copy="'+key+'"]'),v=>{if(v.trim()===value){renderAll();return;}checkpoint();state.publication[key]=v.trim();if(key==='authors')state.footer.authors=v.trim();renderAll();refresh();});};
+
+  const editableTarget=e=>{
+    const pub=e.target.closest('[data-ec-pub-copy]');
+    if(pub)return {node:pub,start:()=>openPublicationCopy(pub.dataset.ecPubCopy,pub)};
+    const mapped=e.target.closest('[data-ec-copy]');
+    if(mapped){const [kind,key,idx]=mapped.dataset.ecCopy.split(':');return {node:mapped,start:()=>openMappedCopy(kind,key,Number(idx||0),mapped)};}
+    const el=e.target.closest('[data-editorial-field]');
+    const field=el&&fields.get(el.dataset.editorialField);
+    if(field&&field.policy!=='LOCKED'&&!field.interactiveControl)return {node:el,start:()=>beginText(field)};
+    return null;
+  };
+  main.addEventListener('pointerdown',e=>{
+    if(e.button!==0||e.target.closest('button,a,input,select,textarea,[role="tab"]'))return;
+    const hit=editableTarget(e);if(hit)hit.start();
   });
-  main.addEventListener('dblclick',e=>{const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||!field.interactiveControl)return;e.preventDefault();e.stopPropagation();if(field.node.closest('#roof-case .reasoning-chain')){const idx=[...document.querySelectorAll('#roof-case [data-reason]')].indexOf(field.node);openMappedCopy('B06','label',Math.max(0,idx));}else beginText(field);});
-  main.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-ec-copy],[data-ec-pub-copy]')){const pub=e.target.closest('[data-ec-pub-copy]');if(pub){e.preventDefault();openPublicationCopy(pub.dataset.ecPubCopy);return;}const mapped=e.target.closest('[data-ec-copy]');if(mapped){const [kind,key,idx]=mapped.dataset.ecCopy.split(':');e.preventDefault();openMappedCopy(kind,key,Number(idx||0));return;}}const el=e.target.closest('[data-editorial-field]');if(!el)return;const field=fields.get(el.dataset.editorialField);if(!field||field.policy==='LOCKED')return;if(activeText&&activeText.field===field){if(e.key==='Escape'){e.preventDefault();stopText(false);}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();stopText(true);}}else if(!field.interactiveControl&&(e.key==='Enter'||e.key===' ')){e.preventDefault();beginText(field);}else if(field.interactiveControl&&e.key==='F2'){e.preventDefault();if(field.node.closest('#roof-case .reasoning-chain'))openMappedCopy('B06','label',[...document.querySelectorAll('#roof-case [data-reason]')].indexOf(field.node));else beginText(field);}});
-  main.addEventListener('focusout',e=>{if(activeText&&e.target===activeText.field.node)stopText(true);});
+  main.addEventListener('click',e=>{
+    if(activeText&&activeText.node.contains(e.target))return;
+    const hit=editableTarget(e);
+    if(hit){hit.start();return;}
+    const hotspotMedia=e.target.closest('[data-ec-hotspot-media]');
+    if(hotspotMedia){e.preventDefault();openB01(Number(hotspotMedia.dataset.ecHotspotMedia));return;}
+  });
+  main.addEventListener('dblclick',e=>{
+    const el=e.target.closest('[data-editorial-field]');
+    if(!el)return;
+    const field=fields.get(el.dataset.editorialField);
+    if(!field||!field.interactiveControl||field.policy==='LOCKED')return;
+    e.preventDefault();e.stopPropagation();
+    if(el.closest('#roof-case .reasoning-chain'))openMappedCopy('B06','label',[...document.querySelectorAll('#roof-case [data-reason]')].indexOf(el),el);
+    else startInline(el,v=>setText(field,v));
+    el.focus();
+  });
+  main.addEventListener('keydown',e=>{
+    if(activeText&&activeText.node.contains(e.target)){
+      if(activeText.composing||e.isComposing)return;
+      if(e.key==='Escape'){e.preventDefault();stopText(false);}
+      else if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();stopText(true);}
+      return; // native arrows, selection, deletion, paste and IME
+    }
+    if(e.key!=='Enter'&&e.key!=='F2'&&e.key!==' ')return;
+    const hit=editableTarget(e);
+    if(hit){e.preventDefault();hit.start();hit.node.focus();return;}
+    const el=e.target.closest('[data-editorial-field]');
+    const field=el&&fields.get(el.dataset.editorialField);
+    if(field&&field.interactiveControl&&field.policy!=='LOCKED'&&e.key==='F2'){e.preventDefault();startInline(el,v=>setText(field,v));el.focus();}
+  });
+  main.addEventListener('focusout',e=>{if(activeText&&e.target===activeText.node)stopText(true);});
 
   const addControl=(target,text,handler,className='ec-visual-control')=>{if(!target)return;const b=document.createElement('button');b.type='button';b.className=className;b.textContent=text;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();handler();});target.insertAdjacentElement('afterend',b);return b;};
   addControl(document.querySelector('#s00 .asset-frame'),'THAY ẢNH / VIDEO',()=>openMedia('HERO_MEDIA',{title:'THAY ẢNH / VIDEO'}));
@@ -530,13 +580,13 @@
   document.querySelectorAll('#remains [data-hotspot]').forEach((btn,i)=>btn.addEventListener('click',()=>queueMicrotask(()=>{document.querySelectorAll('#remains [data-hotspot]').forEach((x,j)=>x.classList.toggle('ec-hotspot-selected',i===j));renderB01Card(i);}))); 
   document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>applyB06(btn.dataset.reason))));
 
-  document.querySelector('.site-header strong')?.addEventListener('click',()=>openPublicationCopy('masthead'));
+  document.querySelector('.site-header strong')?.addEventListener('click',e=>{openPublicationCopy('masthead',e.currentTarget);e.currentTarget.focus();});
   document.querySelector('.site-header .ec-masthead-logo')?.addEventListener('click',openPublication);
   previewLink.addEventListener('click',async e=>{e.preventDefault();if(panelOpen)closePanel();const tab=window.open('about:blank','_blank');const ok=await saveDraft();if(ok){if(tab)tab.location.href=previewUrl.toString();else location.assign(previewUrl.toString());}else if(tab)tab.close();});
   bar.addEventListener('click',e=>{const b=e.target.closest('[data-ec-action]');if(!b||b.tagName==='A')return;const a=b.dataset.ecAction;if(a==='save')saveDraft();else if(a==='undo')undo();else if(a==='redo')redo();else if(a==='history')openHistory();else if(a==='publication')openPublication();else if(a==='restore')restoreBaseline();else if(a==='export')exportChanges();else if(a==='exit')exitMode();});
   panel.querySelector('#ec-close').addEventListener('click',closePanel);
   document.addEventListener('keydown',e=>{
-    const mod=e.metaKey||e.ctrlKey;if(mod&&e.key.toLowerCase()==='z'&&!e.altKey){e.preventDefault();if(e.shiftKey)redo();else undo();return;}
+    const mod=e.metaKey||e.ctrlKey;if(!activeText&&mod&&e.key.toLowerCase()==='z'&&!e.altKey){e.preventDefault();if(e.shiftKey)redo();else undo();return;}
     if(!panelOpen)return;if(e.key==='Escape'){e.preventDefault();closePanel();return;}if(e.key!=='Tab')return;const focus=[...panel.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary')].filter(x=>x.offsetParent!==null);if(!focus.length)return;const first=focus[0],last=focus[focus.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
   });
   window.addEventListener('beforeunload',e=>{if(isDirty()){e.preventDefault();e.returnValue='';}});
