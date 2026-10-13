@@ -561,3 +561,31 @@ test('56 B01 component editor Cancel makes no changes',async ({page})=>{
   const after=await page.evaluate(()=>JSON.stringify(window.__editorialConsoleV04.state.interactive.B01));
   expect(after).toBe(before);
 });
+
+test('57 B08 interactive reader copy remains editable but HOLD is preserved',async ({page})=>{
+  await page.locator('#control-gates [data-verb="requests"]').click();
+  await editVisible(page,'#verb-info [data-ec-copy="B08:copy:4"]','QA — giải thích biên tập đang chờ');
+  const item=await page.evaluate(()=>window.__editorialConsoleV04.state.interactive.B08.items[4]);
+  expect(item.key).toBe('requests');
+  expect(item.review_status).toBe('HOLD_FOR_RESEARCH');
+  await finishDraftSave(page);await page.goto('/?preview=1');
+  await page.locator('#control-gates [data-verb="requests"]').click();
+  await expect(page.locator('#verb-info')).not.toContainText('QA — giải thích biên tập đang chờ');
+});
+test('58 reader view suppresses empty editorial image placeholder labels',async ({page})=>{
+  await page.goto('/?preview=1');
+  const visible=await page.locator('main').innerText();
+  expect(visible).not.toContain('SƠ ĐỒ BIÊN TẬP');
+  expect(visible).not.toContain('ĐỒ HỌA BIÊN TẬP');
+  expect(visible).not.toContain('Chưa có ảnh chính');
+  await expect(page.locator('.placeholder-label')).toBeHidden();
+});
+test('59 preview toolbar saves current unsaved text and opens reader draft',async ({page})=>{
+  await editHeroTitle(page,'QA — Xem trước chưa lưu nháp');
+  const popupPromise=page.waitForEvent('popup');
+  await action(page,'preview').click();
+  const preview=await popupPromise;await preview.waitForLoadState('domcontentloaded');
+  await expect(preview.locator('#s00 h1')).toHaveText('QA — Xem trước chưa lưu nháp');
+  await expect(preview.locator('#editor-console')).toHaveCount(0);
+  await preview.close();
+});
