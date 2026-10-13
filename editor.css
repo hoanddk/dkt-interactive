@@ -34,3 +34,30 @@ main .ec-changed{box-shadow:inset 0 -3px #f0b25a}main .ec-proposal{box-shadow:in
 @media(max-width:860px){body{padding-top:15.8rem}.ec-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.ec-actions button,.ec-preview-link{font-size:.67rem;padding:.32rem .2rem}.ec-tools{max-width:none}}
 @media(max-width:520px){body{padding-top:20.8rem}#editor-console{padding:.45rem .5rem}.ec-heading{align-items:flex-start}.ec-heading strong{font-size:.72rem}.ec-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.ec-actions button,.ec-preview-link{font-size:.67rem;min-height:2rem}#editor-panel{width:100vw;padding:.9rem .85rem 1.5rem}.ec-panel-head{top:-.9rem}.ec-asset-input-actions{display:block}.ec-asset-input-actions button{width:100%;margin:.2rem 0}.ec-preview-image,.ec-preview-video{max-height:50vh}}
 @media(prefers-reduced-motion:reduce){#editor-panel{scroll-behavior:auto}}
+
+
+/* F-EDITOR-UX-05: simple-first canvas and one block-level research warning. */
+main [data-editorial-policy="HOLD_FOR_RESEARCH"],
+main [data-editorial-policy="REVIEW_REQUIRED"]{border-inline-start:0;padding-inline-start:0}
+main [data-editorial-policy="HOLD_FOR_RESEARCH"]:not(button)::after,
+main [data-editorial-policy="LOCKED"]:hover::after{content:none!important;display:none!important}
+main [data-editorial-policy="HOLD_FOR_RESEARCH"]:hover,
+main [data-editorial-policy="REVIEW_REQUIRED"]:hover,
+main [data-ec-copy]:hover{outline:1px dashed #448d78;outline-offset:3px;cursor:text;background:#d9f2e65e}
+.ec-block-warning{display:block;border:1px solid #c5a367;border-radius:6px;background:#fff4df;color:#614317;padding:.4rem .6rem;margin:1rem 0 0;font:650 .78rem system-ui;cursor:pointer}
+.ec-simple-note{background:#fff4df;border-left:3px solid #bb893d;padding:.5rem .7rem;font-size:.82rem}
+.ec-media-advanced,.ec-publication-extra{margin:1rem 0;border-top:1px solid #d4ddd6;padding:.6rem 0}
+.ec-media-advanced summary,.ec-publication-extra summary{font:700 .82rem system-ui;cursor:pointer;color:#35584c}
+.ec-media-click{cursor:pointer;position:relative}
+.ec-media-click:hover{outline:2px dashed #448d78;outline-offset:3px}
+#s00 .asset-frame:has(.ec-media-draft .ec-preview-image) > .placeholder-art{display:none}
+#s00 .asset-frame:has(.ec-media-draft) > figcaption{display:none}
+.model-schematic:has(.ec-media-draft .ec-preview-image){font-size:0}
+.technical-fallback:has(.ec-media-draft .ec-preview-image) > div{display:none}
+.ec-media-draft .ec-preview-image{width:100%;height:auto;max-height:40rem;object-fit:contain}
+.ec-publication-section{font:750 .76rem/1.5 system-ui;letter-spacing:.1em;text-transform:uppercase;color:#6b6659}
+.ec-publication-byline{font:600 .9rem/1.5 system-ui;color:#655f52;margin-top:.75rem}
+.ec-masthead-logo{display:block;max-width:13rem;max-height:3.5rem;object-fit:contain}
+.ec-masthead-logo[hidden]{display:none!important}
+#editor-panel .ec-media-advanced:not([open]) > :not(summary),
+#editor-panel .ec-publication-extra:not([open]) > :not(summary){display:none}
