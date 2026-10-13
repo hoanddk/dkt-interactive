@@ -400,15 +400,15 @@
       '<label>Chú thích<textarea id="ec-media-caption" rows="3">'+esc(m.caption)+'</textarea></label>'+ 
       '<label>Tác giả / Nguồn<input id="ec-media-credit" value="'+esc(m.credit)+'"></label>'+ 
       
-      '<label>Mô tả ảnh cho người dùng khiếm thị<input id="ec-media-alt" value="'+esc(m.alt_text)+'"></label>'+ 
+      
       
       '<fieldset class="ec-video-options"'+(m.media_type==='VIDEO'?'':' hidden')+'><legend>Video</legend><label>Ảnh đại diện video<input id="ec-media-poster" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><details class="ec-video-advanced"><summary>Tùy chọn video mở rộng</summary><label>Tỷ lệ<select id="ec-media-ratio"><option value="AUTO">Tự động</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label><label><input id="ec-media-autoplay" type="checkbox"'+(m.autoplay?' checked':'')+'> Tự phát (sẽ tắt tiếng)</label><label><input id="ec-media-loop" type="checkbox"'+(m.loop?' checked':'')+'> Lặp lại</label><label>Phụ đề VTT nếu có<input id="ec-media-subtitle" type="file" accept="text/vtt,.vtt"></label></details></fieldset>'+ 
       
-      '<details class="ec-media-advanced"><summary>CÔNG CỤ NÂNG CAO</summary><div class="ec-asset-input-actions"><button id="ec-media-remove" type="button">GỠ MEDIA</button><button id="ec-media-restore" type="button">KHÔI PHỤC MEDIA GỐC</button></div><label>Loại hình ảnh<select id="ec-media-asset-type">'+optionHtml(typeLabels,m.asset_type)+'</select></label><label>Nhãn hiển thị<select id="ec-media-representation">'+optionHtml(representationLabels,m.representation_status)+'</select></label><label>Nguồn tư liệu / Bối cảnh<input id="ec-media-source" value="'+esc(m.source_context)+'"></label><label><input id="ec-media-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Ảnh trang trí</label><label>Mức ảnh hưởng đến bằng chứng<select id="ec-media-impact">'+optionHtml(impactLabels,m.evidence_impact)+'</select></label><label>Lý do thay đổi<textarea id="ec-media-reason" rows="2">'+esc(m.change_reason)+'</textarea></label></details>'+ 
+      '<details class="ec-media-advanced"><summary>CHI TIẾT NÂNG CAO</summary><label>Mô tả ảnh cho người dùng khiếm thị<input id="ec-media-alt" value="'+esc(m.alt_text)+'"></label><div class="ec-asset-input-actions"><button id="ec-media-remove" type="button">GỠ MEDIA</button><button id="ec-media-restore" type="button">KHÔI PHỤC MEDIA GỐC</button></div><label>Loại hình ảnh<select id="ec-media-asset-type">'+optionHtml(typeLabels,m.asset_type)+'</select></label><label>Nhãn hiển thị<select id="ec-media-representation">'+optionHtml(representationLabels,m.representation_status)+'</select></label><label>Nguồn tư liệu / Bối cảnh<input id="ec-media-source" value="'+esc(m.source_context)+'"></label><label><input id="ec-media-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Ảnh trang trí</label><label>Mức ảnh hưởng đến bằng chứng<select id="ec-media-impact">'+optionHtml(impactLabels,m.evidence_impact)+'</select></label><label>Lý do thay đổi<textarea id="ec-media-reason" rows="2">'+esc(m.change_reason)+'</textarea></label></details>'+ 
       '<div id="ec-media-status" class="ec-media-status">'+(m.file_name?'Tệp hiện tại: '+esc(m.file_name):'Chưa chọn tệp mới')+'</div>'+ 
       '<div id="ec-media-guidance" class="ec-media-guidance"></div>'+ 
       '<details class="ec-asset-advanced"><summary>CHI TIẾT KỸ THUẬT</summary><pre>'+esc(JSON.stringify(mediaTechnical(m),null,2))+'</pre></details>'+ 
-      '<div class="ec-asset-input-actions"><button id="ec-media-save" type="button">LƯU</button><button id="ec-media-cancel" type="button">HỦY</button></div>');
+      '<div class="ec-asset-input-actions"><button id="ec-media-save" type="button">LƯU THAY ĐỔI</button><button id="ec-media-cancel" type="button">HỦY</button></div>');
     const q=id=>panel.querySelector('#'+id); q('ec-media-ratio').value=m.aspect_ratio||'AUTO'; let candidate=sessionFiles.get(slotId)||null, candidateUrl=m.object_url||null, poster=sessionPosters.get(slotId)||null, posterUrl=m.poster_url||null, meta={duration:m.duration,width:m.width,height:m.height};
     const updateVideoVisibility=type=>{panel.querySelector('.ec-video-options').hidden=type!=='VIDEO';};
     q('ec-media-file').addEventListener('change',()=>{
@@ -484,25 +484,27 @@
   const openPublication=()=>{
     const p=state.publication,f=state.footer,sh=state.share;
     const input=(key,label)=>'<label>'+label+'<input data-pub="'+key+'" value="'+esc(p[key]||'')+'"></label>';
-    const extra=[['title','Tiêu đề bài'],['sapo','Sapo'],['publish_date','Ngày xuất bản'],['publish_time','Giờ xuất bản'],['updated_at','Ngày cập nhật'],['slug','Đường dẫn bài'],['design','Thiết kế'],['team','Nhóm thực hiện']];
+    const extra=[['publish_time','Giờ xuất bản'],['slug','Đường dẫn bài'],['design','Thiết kế'],['team','Nhóm thực hiện']];
     const footerExtra=[['series','Giới thiệu dòng bài'],['newsroom','Giới thiệu tòa soạn'],['method','Ghi chú phương pháp']];
     openPanel('THÔNG TIN XUẤT BẢN',
       '<h3>Măng-sét / Cơ quan báo chí</h3>'+input('masthead','Tên tòa soạn')+
       '<label>Logo / Măng-sét ảnh<input id="ec-masthead-file" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
       '<p class="ec-small" id="ec-masthead-status">'+esc(p.masthead_logo_name||'Chưa có logo — hiển thị tên tòa soạn.')+'</p>'+
       '<label><input id="ec-masthead-visible" type="checkbox"'+(p.masthead_visible!==false?' checked':'')+'> Hiển thị ở đầu bài</label>'+
-      input('section','Chuyên mục')+input('authors','Tác giả')+input('editor','Biên tập')+
-      input('photos','Ảnh')+input('graphics','Đồ họa')+
-      '<label>Nguồn tài liệu<input data-footer="sources" value="'+esc(f.sources||'')+'"></label>'+
-      '<details class="ec-publication-extra"><summary>Thông tin mở rộng</summary>'+
-      extra.map(([k,l])=>k==='sapo'?'<label>'+l+'<textarea data-pub="'+k+'" rows="3">'+esc(p[k]||'')+'</textarea></label>':input(k,l)).join('')+
-      footerExtra.map(([k,l])=>'<label>'+l+'<input data-footer="'+k+'" value="'+esc(f[k]||'')+'"></label>').join('')+
-      '<label>Tiêu đề chia sẻ<input data-share="title" value="'+esc(sh.title||'')+'"></label>'+
+      input('section','Chuyên mục')+input('title','Tiêu đề bài')+'<label>Sapo<textarea data-pub="sapo" rows="3">'+esc(p.sapo||'')+'</textarea></label>'+input('authors','Tác giả / Nhóm tác giả')+input('editor','Biên tập')+
+      input('photos','Ảnh')+input('graphics','Đồ họa / Thiết kế')+input('publish_date','Ngày xuất bản')+input('updated_at','Ngày cập nhật')+
+      '<label>Nguồn tài liệu<input data-footer="sources" value="'+esc(f.sources||'')+'"></label>'+ 
+      '<label>Tiêu đề chia sẻ<input data-share="title" value="'+esc(sh.title||'')+'"></label>'+ 
       '<label>Mô tả chia sẻ<textarea data-share="description" rows="3">'+esc(sh.description||'')+'</textarea></label>'+
+      '<details class="ec-publication-extra"><summary>Thông tin mở rộng</summary>'+
+      extra.map(([k,l])=>input(k,l)).join('')+
+      footerExtra.map(([k,l])=>'<label>'+l+'<input data-footer="'+k+'" value="'+esc(f[k]||'')+'"></label>').join('')+
+
+
       '<label>Ảnh chia sẻ<input data-share="thumbnail" value="'+esc(sh.thumbnail||'')+'"></label>'+
       '<label>Liên kết chuẩn<input data-share="canonical" value="'+esc(sh.canonical||'')+'"></label>'+
       '<button type="button" id="ec-masthead-remove">BỎ LOGO</button></details>'+
-      '<div class="ec-asset-input-actions"><button id="ec-publication-save" type="button">LƯU</button><button id="ec-publication-cancel" type="button">HỦY</button></div>');
+      '<div class="ec-asset-input-actions"><button id="ec-publication-save" type="button">LƯU THAY ĐỔI</button><button id="ec-publication-cancel" type="button">HỦY</button></div>');
     const fileInput=panel.querySelector('#ec-masthead-file');
     fileInput.addEventListener('change',()=>{const file=fileInput.files[0];if(file)panel.querySelector('#ec-masthead-status').textContent=file.name;});
     let removeLogo=false;
