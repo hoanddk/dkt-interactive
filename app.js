@@ -158,7 +158,26 @@
     const pub=draft.publication||{};
     if(pub.title){document.title=pub.title;const h=document.querySelector('#s00 h1');if(h)h.textContent=pub.title;}
     if(pub.sapo){const d=document.querySelector('#s00 .dek');if(d)d.textContent=pub.sapo;}
-    if(pub.masthead){const h=document.querySelector('.site-header strong');if(h)h.textContent=pub.masthead;}
+
+    // Reader preview receives the same masthead layout as the editorial canvas.
+    const brand=document.querySelector('.site-header .header-inner > div:first-child');
+    if(brand){
+      const name=brand.querySelector('strong');
+      if(name)name.textContent=pub.masthead||name.textContent;
+      brand.hidden=pub.masthead_visible===false;
+      if(/^data:image\/(png|jpeg|webp|gif);base64,/i.test(pub.masthead_logo_data||'')){
+        const logo=document.createElement('img');logo.className='ec-masthead-logo';
+        logo.alt='Logo '+(pub.masthead||'tòa soạn');logo.src=pub.masthead_logo_data;
+        brand.prepend(logo);if(name)name.hidden=true;
+      }
+    }
+    const heroCopy=document.querySelector('#s00 .hero-copy');
+    if(heroCopy){
+      if(pub.section){const kicker=document.createElement('p');kicker.className='ec-publication-section';kicker.textContent=pub.section;heroCopy.prepend(kicker);}
+      const byline=[pub.authors,pub.publish_date].filter(Boolean).join(' · ');
+      if(byline){const line=document.createElement('p');line.className='ec-publication-byline';line.textContent=byline;heroCopy.querySelector('.dek')?.insertAdjacentElement('afterend',line);}
+    }
+
     const b03=draft.structured?.B03,plan=document.querySelector('#plan-visual');
     if(b03&&plan){[['project','project'],['foundation','foundation'],['hall','hall'],['court','court']].forEach(([k,c])=>{const el=plan.querySelector('.'+c+' span');if(el)el.textContent=b03[k];});const note=document.querySelector('#measure .plan-controls .small');if(note)note.textContent=b03.note;plan.setAttribute('aria-label',b03.aria||plan.getAttribute('aria-label'));}
     const b01=draft.interactive?.B01;
@@ -166,7 +185,24 @@
     const b06=draft.interactive?.B06;
     if(b06?.items){b06.items.forEach(x=>{const btn=document.querySelector('#roof-case [data-reason="'+CSS.escape(x.key)+'"]');if(btn)btn.textContent=x.label;});document.querySelectorAll('#roof-case [data-reason]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(()=>{const x=b06.items.find(i=>i.key===btn.dataset.reason),box=document.getElementById('reason-info');if(x&&box)box.innerHTML='<h3>'+esc(x.title)+'</h3><p>'+esc(x.copy)+'</p>';})));}
     const hero=draft.media?.HERO_MEDIA,cap=document.querySelector('#s00 figcaption');
-    if(hero&&cap&&hero.timestamp){if(hero.show_caption&&hero.caption){cap.hidden=false;cap.textContent=hero.caption+(hero.credit?' — '+hero.credit:'');}else cap.hidden=true;}
+    if(hero&&cap&&hero.timestamp){
+      if(hero.show_caption&&hero.caption){cap.hidden=false;cap.textContent=hero.caption+(hero.credit?' — '+hero.credit:'');}
+      else cap.hidden=true;
+      if(/^data:image\/(png|jpeg|webp|gif);base64,/i.test(hero.preview_data||'')){
+        const frame=document.querySelector('#s00 .asset-frame');
+        frame?.querySelector('.placeholder-art')?.setAttribute('hidden','');
+        const image=document.createElement('img');image.className='ec-preview-image';image.src=hero.preview_data;
+        image.alt=hero.decorative?'':hero.alt_text||hero.caption||'Ảnh minh họa';
+        frame?.insertBefore(image,cap);
+      }
+    }
+    [['B01_BACKGROUND','#remains .photo-fallback'],['B03_GRAPHIC_REPLACEMENT','#plan-visual'],['B05_MODEL_A','#model-a .model-schematic'],['B05_MODEL_B','#model-b .model-schematic'],['B05_MODEL_C','#model-c .model-schematic'],['B07_SCHEMATIC','#preserve .technical-fallback']].forEach(([id,selector])=>{
+      const m=draft.media?.[id],target=document.querySelector(selector);
+      if(!m||!target||!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(m.preview_data||''))return;
+      target.classList.add('ec-replaced-visual');
+      const img=document.createElement('img');img.src=m.preview_data;img.alt=m.decorative?'':m.alt_text||m.caption||'Ảnh minh họa';img.className='ec-preview-image';
+      target.append(img);
+    });
   }
 
   // Data-driven footer. Empty optional rows render nothing.
