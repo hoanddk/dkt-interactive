@@ -15,12 +15,15 @@ async function cleanEdit(page){
 async function editVisible(page,selector,text){
   const target=page.locator(selector);
   await target.click();
-  await expect(page.locator('#ec-copy-input')).toBeVisible();
-  await page.locator('#ec-copy-input').fill(text);
-  await page.locator('#ec-copy-save').click();
-  await expect(page.locator('#editor-panel')).toBeHidden();
+  await expect(target).toHaveAttribute('contenteditable','plaintext-only');
+  await target.fill(text);
+  await target.press('Tab'); // blur commits to the draft
   await expect(target).toHaveText(text);
   return target;
+}
+async function finishDraftSave(page){
+  await action(page,'save').click();
+  await expect(page.locator('#ec-notice')).toContainText('Đã lưu toàn bộ bản nháp');
 }
 async function editHeroTitle(page,text){
   return editVisible(page,'#s00 h1[data-editorial-policy="EDITABLE"]',text);
@@ -171,28 +174,28 @@ test('14 B08 wording editable while research status remains HOLD', async ({page}
   expect(record.previewOnly).toBe(true);expect(record.policy).toBe('HOLD_FOR_RESEARCH');
 });
 
-test('15 B06 click interacts and double-click opens shared text editor', async ({page})=>{
+test('15 B06 click interacts and double-click enables native caret', async ({page})=>{
   const btn=page.locator('#roof-case [data-reason="wood"]');
   await btn.click();await expect(page.locator('#reason-info h3')).toContainText('Cấu kiện gỗ');
-  await btn.dblclick();await expect(page.locator('#ec-copy-input')).toBeVisible();
-  await expect(page.locator('#ec-panel-title')).toHaveText('SỬA CÂU CHỮ');
+  await btn.dblclick();await expect(btn).toHaveAttribute('contenteditable','plaintext-only');
+  await btn.press('Escape');await expect(btn).not.toHaveAttribute('contenteditable','plaintext-only');
 });
 
-test('16 B06 tab labels use shared editor and preserve item keys', async ({page})=>{
+test('16 B06 tab labels direct edit while keys and Undo/Redo stay stable', async ({page})=>{
   const btn=page.locator('#roof-case [data-reason="tile"]');
-  await btn.dblclick();await page.locator('#ec-copy-input').fill('1 · Ngói khảo cổ');
-  await page.locator('#ec-copy-save').click();await expect(btn).toHaveText('1 · Ngói khảo cổ');
+  await btn.dblclick();await btn.fill('1 · Ngói khảo cổ');await btn.press('Tab');
+  await expect(btn).toHaveText('1 · Ngói khảo cổ');
   const item=await page.evaluate(()=>window.__editorialConsoleV04.state.interactive.B06.items[0]);
   expect(item.key).toBe('tile');
   await action(page,'undo').click();await expect(btn).toContainText('Ngói thật');
   await action(page,'redo').click();await expect(btn).toHaveText('1 · Ngói khảo cổ');
 });
 
-test('17 B03 mapped text uses same copy editor without altering geometry', async ({page})=>{
-  await page.locator('#plan-visual .project span').click();
-  await expect(page.locator('#ec-panel-title')).toHaveText('SỬA CÂU CHỮ');
-  await expect(page.locator('#ec-copy-input')).toBeVisible();
-  await expect(page.locator('#ec-media-file')).toHaveCount(0);
+test('17 B03 mapped copy uses native direct edit without geometry change', async ({page})=>{
+  const target=page.locator('#plan-visual .project span');
+  await target.click();await expect(target).toHaveAttribute('contenteditable','plaintext-only');
+  await expect(page.locator('#editor-panel')).toBeHidden();
+  await target.press('Escape');
 });
 
 test('18 B03 copy edits preserve interactive plan toggle', async ({page})=>{
@@ -221,42 +224,45 @@ test('21 B01 hotspot title opens the same text editor', async ({page})=>{
   await expect(page.locator('#hotspot-card h3')).not.toHaveText('QA — Điểm 1');
 });
 
-test('22 B01 body edit preserves evidence level and independent items', async ({page})=>{
+test('22 B01 direct body edit preserves evidence level and independent items', async ({page})=>{
   await page.locator('#remains [data-hotspot="them"]').click();
-  await page.locator('#hotspot-card [data-ec-copy="B01:known:0"]').click();
-  await page.locator('#ec-copy-input').fill('QA — Thông tin điểm 1');
-  await page.locator('#ec-copy-save').click();
+  await editVisible(page,'#hotspot-card [data-ec-copy="B01:known:0"]','QA — Thông tin điểm 1');
   const items=await page.evaluate(()=>window.__editorialConsoleV04.state.interactive.B01.items);
   expect(items[0].known).toBe('QA — Thông tin điểm 1');
   expect(items[1].known).not.toBe('QA — Thông tin điểm 1');
   expect(items[0].evidence_level).toBe('1');expect(items[2].evidence_level).toBe('2');
 });
 
-test('23 B01 hotspot media opens shared replacement form', async ({page})=>{
-  await page.locator('#remains [data-hotspot="rong"]').click();
-  await page.locator('#hotspot-card [data-ec-hotspot-media="1"]').click();
-  await expect(page.locator('#ec-media-file')).toBeVisible();
-  await expect(page.locator('#ec-panel-title')).toHaveText('THAY ẢNH / VIDEO');
-  await expect(page.locator('.ec-media-advanced')).not.toHaveAttribute('open','');
+test('23 B01 one component editor covers main and all three hotspot images', async ({page})=>{
+  await page.getByRole('button',{name:'CHỈNH ĐỒ HỌA TƯƠNG TÁC'}).click();
+  await expect(page.locator('#ec-panel-title')).toHaveText('ĐỒ HỌA TƯƠNG TÁC — B01');
+  await expect(page.locator('[data-b01-file]')).toHaveCount(4);
+  await expect(page.locator('[data-b01-field]')).toHaveCount(12);
+  await expect(page.locator('#b01-save')).toHaveText('LƯU THAY ĐỔI');
+  await expect(page.locator('#editor-panel')).not.toContainText('evidence_level:');
 });
 
-test('24 Hero media defaults to simple Vietnamese publishing fields', async ({page})=>{
+test('24 Hero media defaults to minimal editor and hides advanced fields', async ({page})=>{
   await openHeroMedia(page);const p=page.locator('#editor-panel');
-  for(const label of ['Chọn ảnh / video','Chú thích','Tác giả / Nguồn','Mô tả ảnh']) await expect(p).toContainText(label);
-  await expect(p.locator('.ec-media-advanced')).not.toHaveAttribute('open','');
+  for(const label of ['Chọn ảnh / video','Chú thích','Tác giả / Nguồn','Hiển thị chú thích'])await expect(p).toContainText(label);
+  await expect(p.locator('#ec-media-alt')).toBeHidden();
   await expect(p.locator('#ec-media-impact')).toBeHidden();
-  await expect(p.locator('#ec-media-asset-type')).toBeHidden();
+  await expect(p.locator('.ec-media-advanced')).not.toHaveAttribute('open','');
+  await expect(p.locator('#ec-media-save')).toHaveText('LƯU THAY ĐỔI');
 });
 
-test('25 image upload/replace produces an editor preview', async ({page})=>{
+test('25 Image upload replaces hero placeholder with real media', async ({page})=>{
   await openHeroMedia(page);
   await page.locator('#ec-media-file').setInputFiles(file('hero-qa.png'));
   await page.locator('#ec-media-caption').fill('Chú thích QA');
   await page.locator('#ec-media-credit').fill('Tác giả QA');
+  await page.locator('.ec-media-advanced summary').click();
   await page.locator('#ec-media-alt').fill('Mô tả QA');
   await page.locator('#ec-media-show-caption').check();
   await page.locator('#ec-media-save').click();
-  await expect(page.locator('#s00 .ec-media-draft .ec-preview-image')).toBeVisible();
+  await expect(page.locator('#editor-panel')).toBeHidden();
+  await expect(page.locator('#s00 .ec-slot-media .ec-preview-image')).toBeVisible();
+  await expect(page.locator('#s00 .placeholder-art')).toBeHidden();
   await expect(page.locator('#s00 .ec-reader-caption')).toHaveText('Chú thích QA');
   await expect(page.locator('#s00 .ec-reader-credit')).toHaveText('Tác giả QA');
 });
@@ -270,8 +276,8 @@ test('26 optional caption hides cleanly', async ({page})=>{
   await expect(page.locator('#s00 .ec-reader-caption')).toHaveCount(0);
 });
 
-test('27 media metadata edit participates in Undo/Redo', async ({page})=>{
-  await openHeroMedia(page);
+test('27 Media caption edit participates in Undo/Redo', async ({page})=>{
+  await openHeroMedia(page);await page.locator('#ec-media-file').setInputFiles(file('undo-media.png'));
   await page.locator('#ec-media-caption').fill('QA media metadata');
   await page.locator('#ec-media-show-caption').check();
   await page.locator('#ec-media-save').click();
@@ -379,13 +385,13 @@ test('36 page has no horizontal overflow at configured viewport', async ({page})
   expect(d.toolbar).toBeLessThanOrEqual(d.client+1);
 });
 
-test('37 No uncaught errors during unified editor routes', async ({page})=>{
+test('37 No uncaught errors during direct text editor routes', async ({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.reload();
   await action(page,'publication').click();await page.keyboard.press('Escape');
-  await page.locator('#plan-visual .project span').click();await page.keyboard.press('Escape');
+  const shape=page.locator('#plan-visual .project span');await shape.click();await shape.press('Escape');
   await page.locator('#remains [data-hotspot="nen"]').click();
-  await page.locator('#hotspot-card [data-ec-copy="B01:title:2"]').click();
-  await page.keyboard.press('Escape');expect(errors).toEqual([]);
+  const title=page.locator('#hotspot-card [data-ec-copy="B01:title:2"]');await title.click();await title.press('Escape');
+  expect(errors).toEqual([]);
 });
 
 test('38 Masthead logo upload renders in editor and saved preview',async ({page})=>{
@@ -423,28 +429,30 @@ test('42 Headline sapo and paragraph share one copy editor',async ({page})=>{
   await editVisible(page,'#remains .narrow > p:nth-of-type(2)','QA — Đoạn văn thống nhất');
   await expect(page.locator('#editor-panel')).toBeHidden();
 });
-test('43 Hero image persists into saved reader preview',async ({page})=>{
+test('43 Hero media binary survives saved Reader Preview', async ({page})=>{
   await openHeroMedia(page);
   await page.locator('#ec-media-file').setInputFiles(file('hero-preview.png'));
   await page.locator('#ec-media-caption').fill('Chú thích ảnh xem trước');
   await page.locator('#ec-media-show-caption').check();
   await page.locator('#ec-media-save').click();
-  await expect(page.locator('#s00 .ec-media-draft .ec-preview-image')).toBeVisible();
-  await action(page,'save').click();await page.goto('/?preview=1');
-  await expect(page.locator('#s00 .asset-frame > .ec-preview-image')).toBeVisible();
-  await expect(page.locator('#s00 figcaption')).toContainText('Chú thích ảnh xem trước');
+  await expect(page.locator('#s00 .ec-slot-media .ec-preview-image')).toBeVisible();
+  await finishDraftSave(page);await page.goto('/?preview=1');
+  await expect(page.locator('#s00 .asset-frame .ec-slot-media img')).toBeVisible();
+  await expect(page.locator('#s00 .placeholder-art')).toBeHidden();
+  await expect(page.locator('#s00 .ec-reader-caption')).toContainText('Chú thích ảnh xem trước');
 });
-test('44 Tab and verb labels are editable but interaction keys stay fixed',async ({page})=>{
+
+test('44 Tab and verb labels direct-edit while interaction keys stay fixed', async ({page})=>{
   const tab=page.locator('#tab-a');await tab.dblclick();
-  await page.locator('#ec-copy-input').fill('QA — Mô hình A');await page.locator('#ec-copy-save').click();
+  await tab.fill('QA — Mô hình A');await tab.press('Tab');
   await expect(tab).toHaveText('QA — Mô hình A');
   const verb=page.locator('#control-gates [data-verb="requests"]');await verb.dblclick();
-  await page.locator('#ec-copy-input').fill('QA — yêu cầu');
-  await page.locator('#ec-copy-save').click();
+  await verb.fill('QA — yêu cầu');await verb.press('Tab');
   await expect(verb).toHaveAttribute('data-verb','requests');
   await expect(verb).toHaveText('QA — yêu cầu');
   await expect(page.locator('#control-gates .ec-block-warning')).toHaveCount(1);
 });
+
 test('45 Masthead section can be edited directly on the canvas',async ({page})=>{
   await editVisible(page,'.ec-publication-section','QA — CHUYÊN MỤC');
   await expect(page.locator('.ec-publication-section')).toHaveText('QA — CHUYÊN MỤC');
