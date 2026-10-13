@@ -74,7 +74,7 @@
   const bar=document.createElement('aside');
   bar.id='editor-console';
   bar.setAttribute('aria-label','Bảng biên tập Interactive');
-  bar.innerHTML='<div class="ec-heading"><strong>BẢNG BIÊN TẬP INTERACTIVE</strong><span id="ec-count">Chưa có thay đổi</span></div>'+ 
+  bar.innerHTML='<div class="ec-heading"><strong>BẢNG BIÊN TẬP BÀI TƯƠNG TÁC</strong><span id="ec-count">Chưa có thay đổi</span></div>'+ 
     '<div class="ec-state">'+PRODUCT_LABEL+' · '+MODE_LABEL+' · Bản nháp trên trình duyệt</div>'+ 
     '<div class="ec-actions">'+
       '<button type="button" data-ec-action="save">LƯU NHÁP</button>'+ 
@@ -102,12 +102,12 @@
   const previewUrl=new URL(location.href); previewUrl.searchParams.delete('edit'); previewUrl.searchParams.delete('editorial_mode'); previewUrl.searchParams.set('preview','1'); previewLink.href=previewUrl.toString();
 
   const fields=new Map();
-  const contentSelector='h1,h2,h3,p,figcaption,li,.reasoning-chain button,[role="tab"]';
+  const contentSelector='h1,h2,h3,p,figcaption,li,.reasoning-chain button,[role="tab"],button[data-verb],button[data-layer],button[data-plan]';
   const fieldPolicy=(el,section)=>{
     const id=section.id;
     if(id==='evidence-tower' && !el.closest('.narrow')) return 'LOCKED';
     if(el.closest('.status-badge,.badge,.representation-banner')) return 'LOCKED';
-    if(id==='measure' && (el.closest('.plan-grid')||el.closest('.plan-controls'))) return 'LOCKED';
+    if(id==='measure' && (el.closest('.plan-grid')||el.closest('.plan-controls')) && !el.matches('button[data-plan]')) return 'LOCKED';
     if(id==='remains' && el.closest('.hotspot-stage')) return 'LOCKED';
     if(id==='roof-case' && el.closest('#reason-info')) return 'LOCKED';
     if(id==='preserve' && el.closest('.status-grid') && el.matches('h3')) return 'LOCKED';
@@ -230,7 +230,7 @@
     if(!target)return; target.querySelectorAll(':scope > .ec-media-draft').forEach(el=>el.remove());
     const m=state.media[slotId]; if(!m||!m.timestamp)return;
     const wrap=document.createElement('div'); wrap.className='ec-media-draft'; wrap.dataset.mediaSlot=slotId;
-    if(m.removed){wrap.innerHTML='<p class="ec-asset-empty">Media đã được gỡ trong bản nháp.</p>';target.append(wrap);return;}
+    if(m.removed){wrap.innerHTML='<p class="ec-asset-empty">Ảnh hoặc video đã được gỡ trong bản nháp.</p>';target.append(wrap);return;}
     const file=sessionFiles.get(slotId);
     if((file && m.object_url)||m.preview_data){
       if(m.media_type==='VIDEO'){
@@ -358,7 +358,7 @@
       
       '<label>Mô tả ảnh cho người dùng khiếm thị<input id="ec-media-alt" value="'+esc(m.alt_text)+'"></label>'+ 
       
-      '<fieldset class="ec-video-options"'+(m.media_type==='VIDEO'?'':' hidden')+'><legend>Tùy chọn video</legend><label>Tỷ lệ<select id="ec-media-ratio"><option value="AUTO">Tự động</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label><label><input id="ec-media-autoplay" type="checkbox"'+(m.autoplay?' checked':'')+'> Tự phát (sẽ tắt tiếng)</label><label><input id="ec-media-loop" type="checkbox"'+(m.loop?' checked':'')+'> Lặp lại</label><label>Ảnh poster<input id="ec-media-poster" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><label>Phụ đề VTT nếu có<input id="ec-media-subtitle" type="file" accept="text/vtt,.vtt"></label></fieldset>'+ 
+      '<fieldset class="ec-video-options"'+(m.media_type==='VIDEO'?'':' hidden')+'><legend>Video</legend><label>Ảnh đại diện video<input id="ec-media-poster" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><details class="ec-video-advanced"><summary>Tùy chọn video mở rộng</summary><label>Tỷ lệ<select id="ec-media-ratio"><option value="AUTO">Tự động</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label><label><input id="ec-media-autoplay" type="checkbox"'+(m.autoplay?' checked':'')+'> Tự phát (sẽ tắt tiếng)</label><label><input id="ec-media-loop" type="checkbox"'+(m.loop?' checked':'')+'> Lặp lại</label><label>Phụ đề VTT nếu có<input id="ec-media-subtitle" type="file" accept="text/vtt,.vtt"></label></details></fieldset>'+ 
       
       '<details class="ec-media-advanced"><summary>CÔNG CỤ NÂNG CAO</summary><div class="ec-asset-input-actions"><button id="ec-media-remove" type="button">GỠ MEDIA</button><button id="ec-media-restore" type="button">KHÔI PHỤC MEDIA GỐC</button></div><label>Loại hình ảnh<select id="ec-media-asset-type">'+optionHtml(typeLabels,m.asset_type)+'</select></label><label>Nhãn hiển thị<select id="ec-media-representation">'+optionHtml(representationLabels,m.representation_status)+'</select></label><label>Nguồn tư liệu / Bối cảnh<input id="ec-media-source" value="'+esc(m.source_context)+'"></label><label><input id="ec-media-decorative" type="checkbox"'+(m.decorative?' checked':'')+'> Ảnh trang trí</label><label>Mức ảnh hưởng đến bằng chứng<select id="ec-media-impact">'+optionHtml(impactLabels,m.evidence_impact)+'</select></label><label>Lý do thay đổi<textarea id="ec-media-reason" rows="2">'+esc(m.change_reason)+'</textarea></label></details>'+ 
       '<div id="ec-media-status" class="ec-media-status">'+(m.file_name?'Tệp hiện tại: '+esc(m.file_name):'Chưa chọn tệp mới')+'</div>'+ 
@@ -374,13 +374,13 @@
       q('ec-media-file').dataset.mediaType=mt;
     });
     q('ec-media-poster').addEventListener('change',()=>{poster=q('ec-media-poster').files[0]||null;if(poster)posterUrl=URL.createObjectURL(poster);});
-    q('ec-media-remove').addEventListener('click',()=>{candidate=null;candidateUrl=null;q('ec-media-file').value='';q('ec-media-status').textContent='Media sẽ được gỡ trong bản nháp.';q('ec-media-file').dataset.removed='1';});
-    q('ec-media-restore').addEventListener('click',()=>{checkpoint();state.media[slotId]=clone(baseline.media[slotId]||emptyMedia(slotId,''));sessionFiles.delete(slotId);sessionPosters.delete(slotId);renderAll();refresh();closePanel();showNotice('Đã khôi phục media gốc.');});
+    q('ec-media-remove').addEventListener('click',()=>{candidate=null;candidateUrl=null;q('ec-media-file').value='';q('ec-media-status').textContent='Ảnh hoặc video sẽ được gỡ trong bản nháp.';q('ec-media-file').dataset.removed='1';});
+    q('ec-media-restore').addEventListener('click',()=>{checkpoint();state.media[slotId]=clone(baseline.media[slotId]||emptyMedia(slotId,''));sessionFiles.delete(slotId);sessionPosters.delete(slotId);renderAll();refresh();closePanel();showNotice('Đã khôi phục ảnh hoặc video gốc.');});
     q('ec-media-cancel').addEventListener('click',closePanel);
     q('ec-media-save').addEventListener('click',()=>{
       checkpoint(); const old=state.media[slotId]||emptyMedia(slotId,''); const removed=q('ec-media-file').dataset.removed==='1'; const file=candidate; const mediaType=removed?old.media_type:(q('ec-media-file').dataset.mediaType||old.media_type||'IMAGE');
       const next={...old,slot_id:slotId,media_type:mediaType,asset_type:q('ec-media-asset-type').value,representation_status:q('ec-media-representation').value,file_name:removed?null:(file?.name||old.file_name),file_type:removed?null:(file?.type||old.file_type),file_size:removed?0:(file?.size||old.file_size||0),object_url:removed?null:(candidateUrl||old.object_url),poster_name:poster?.name||old.poster_name,poster_url:posterUrl||old.poster_url,caption:q('ec-media-caption').value.trim(),show_caption:q('ec-media-show-caption').checked,credit:q('ec-media-credit').value.trim(),source_context:q('ec-media-source').value.trim(),alt_text:q('ec-media-alt').value.trim(),decorative:q('ec-media-decorative').checked,aspect_ratio:q('ec-media-ratio').value,autoplay:q('ec-media-autoplay')?.checked||false,loop:q('ec-media-loop')?.checked||false,subtitle_name:q('ec-media-subtitle')?.files?.[0]?.name||old.subtitle_name,duration:meta.duration,width:meta.width,height:meta.height,change_reason:q('ec-media-reason').value.trim(),removed,evidence_impact:(()=>{const ranks={PRESENTATION_ONLY:0,EVIDENCE_SUPPORTING:1,EVIDENCE_AFFECTING:2,CLAIM_AFFECTING:3};return [q('ec-media-impact').value,evidenceImpact,old.evidence_impact].reduce((a,b)=>(ranks[b]??0)>(ranks[a]??0)?b:a,'PRESENTATION_ONLY');})(),review_status:hold?'HOLD_FOR_RESEARCH':'DRAFT',timestamp:now()};
-      next.warnings=fileWarnings(next); if(file && file.type.startsWith('image/') && file.size<=1024*1024){const reader=new FileReader();reader.onload=()=>{next.preview_data=String(reader.result||'');};reader.readAsDataURL(file);} else if(file){next.preview_data=null;} state.media[slotId]=next; if(file)sessionFiles.set(slotId,file);else if(removed)sessionFiles.delete(slotId); if(poster)sessionPosters.set(slotId,poster); renderAll();refresh();closePanel();showNotice('Đã lưu bản nháp media. Quyền sử dụng không được hệ thống tự xác minh.');
+      next.warnings=fileWarnings(next); if(file && file.type.startsWith('image/') && file.size<=1024*1024){const reader=new FileReader();reader.onload=()=>{next.preview_data=String(reader.result||'');};reader.readAsDataURL(file);} else if(file){next.preview_data=null;} state.media[slotId]=next; if(file)sessionFiles.set(slotId,file);else if(removed)sessionFiles.delete(slotId); if(poster)sessionPosters.set(slotId,poster); renderAll();refresh();closePanel();showNotice('Đã lưu ảnh hoặc video vào bản nháp. Hãy kiểm tra quyền sử dụng trước khi xuất bản.');
     });
     q('ec-media-file').focus();
   };
