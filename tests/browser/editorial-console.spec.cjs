@@ -455,6 +455,7 @@ test('46 HOLD image remains editorial-only in reader preview',async ({page})=>{
   await page.locator('#model-a .model-schematic').click();
   await page.locator('#ec-media-file').setInputFiles(file('hold-model.png'));
   await page.locator('#ec-media-save').click();
+  await expect(page.locator('#editor-panel')).toBeHidden(); // FileReader-backed save is asynchronous.
   const m=await page.evaluate(()=>window.__editorialConsoleV04.state.media.B05_MODEL_A);
   expect(m.review_status).toBe('HOLD_FOR_RESEARCH');
   expect(m.evidence_impact).toBe('EVIDENCE_AFFECTING');
