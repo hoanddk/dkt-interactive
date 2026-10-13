@@ -220,6 +220,8 @@
     (JSON.stringify(state.structured.B03)!==JSON.stringify(baseline.structured.B03)?1:0) +
     (JSON.stringify(state.interactive.B01)!==JSON.stringify(baseline.interactive.B01)?1:0) +
     (JSON.stringify(state.interactive.B06)!==JSON.stringify(baseline.interactive.B06)?1:0) +
+    (JSON.stringify(state.interactive.HISTORY)!==JSON.stringify(baseline.interactive.HISTORY)?1:0) +
+    (JSON.stringify(state.interactive.B08)!==JSON.stringify(baseline.interactive.B08)?1:0) +
     (JSON.stringify(state.publication)!==JSON.stringify(baseline.publication)?1:0) +
     (JSON.stringify(state.footer)!==JSON.stringify(baseline.footer)?1:0) + (JSON.stringify(state.share)!==JSON.stringify(baseline.share)?1:0);
   const showNotice=message=>{ notice.textContent=message; };
@@ -565,6 +567,14 @@
     const b03=state.structured.B03;if(JSON.stringify(b03)!==JSON.stringify(baseline.structured.B03))rows.push({kind:'graphic',title:'B03 — Đồ họa có cấu trúc',before:[baseline.structured.B03.project,baseline.structured.B03.foundation,baseline.structured.B03.hall,baseline.structured.B03.court].join(' · '),after:[b03.project,b03.foundation,b03.hall,b03.court].join(' · '),time:b03.timestamp,reason:b03.reason,technical:{visual_type:'STRUCTURED_GRAPHIC',slot_id:'B03_PLAN_VISUAL',evidence_impact:b03.evidence_impact}});
     state.interactive.B01?.items?.forEach((x,i)=>{const b=baseline.interactive.B01.items[i];if(JSON.stringify(x)!==JSON.stringify(b))rows.push({kind:'interactive',title:'B01 — Điểm tương tác '+(i+1),before:b.title+' · '+b.known,after:x.title+' · '+x.known,time:x.timestamp,reason:x.reason,technical:{visual_type:'INTERACTIVE_COMPONENT',item_id:x.id,evidence_level:x.evidence_level}});});
     state.interactive.B06?.items?.forEach((x,i)=>{const b=baseline.interactive.B06.items[i];if(JSON.stringify(x)!==JSON.stringify(b))rows.push({kind:'interactive',title:'B06 — Bước '+(i+1),before:b.label+' · '+b.copy,after:x.label+' · '+x.copy,time:x.timestamp,reason:x.reason,technical:{component:'B06_REASONING_CHAIN',item_key:x.key}});});
+    for(const group of ['HISTORY','B08']){
+      state.interactive[group]?.items?.forEach((x,i)=>{
+        const before=baseline.interactive[group]?.items?.[i];
+        if(before&&JSON.stringify(x)!==JSON.stringify(before))rows.push({kind:'interactive',title:(group==='HISTORY'?'Lớp lịch sử ':'Nội dung UNESCO ')+(i+1),
+          before:before.label+' · '+(before.intro||before.copy),after:x.label+' · '+(x.intro||x.copy),
+          time:x.timestamp,reason:'',technical:{key:x.key,review_status:group==='B08'?'HOLD_FOR_RESEARCH':'DRAFT'}});
+      });
+    }
     if(JSON.stringify(state.publication)!==JSON.stringify(baseline.publication))rows.push({kind:'metadata',title:'Thông tin xuất bản',before:baseline.publication.title,after:state.publication.title,time:now(),reason:'',technical:{publication:state.publication}});
     if(JSON.stringify(state.footer)!==JSON.stringify(baseline.footer))rows.push({kind:'metadata',title:'Chân trang',before:'Bản gốc',after:'Đã cập nhật dữ liệu chân trang',time:now(),reason:'',technical:{footer:state.footer}});
     return rows;
