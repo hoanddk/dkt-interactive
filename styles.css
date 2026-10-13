@@ -517,3 +517,27 @@ h3{
 .ec-replaced-visual.model-schematic{font-size:0}
 .ec-replaced-visual.technical-fallback > div{display:none}
 .ec-replaced-visual .ec-preview-image,.asset-frame .ec-preview-image{display:block;width:100%;height:auto;max-height:40rem;object-fit:contain}
+
+
+/* UX-28 native caret and selection. No pseudo-element or overlay above text. */
+main [contenteditable="plaintext-only"]{cursor:text!important;outline:2px solid #22745b!important;outline-offset:3px;user-select:text!important;-webkit-user-select:text!important;white-space:pre-wrap;caret-color:#0c5945}
+main [contenteditable="plaintext-only"]::before,main [contenteditable="plaintext-only"]::after{pointer-events:none!important}
+.ec-has-real-media{position:relative}
+.ec-slot-media{position:relative;display:block;width:100%;min-width:0}
+.ec-slot-media img,.ec-slot-media video{display:block;width:100%;max-width:100%;height:auto;object-fit:contain}
+.ec-slot-media .ec-reader-caption,.ec-slot-media .ec-reader-credit{font:500 .82rem/1.5 system-ui,sans-serif;padding:.25rem .35rem;color:inherit}
+.asset-frame.ec-has-real-media > .placeholder-art,.asset-frame.ec-has-real-media > figcaption{display:none!important}
+.photo-fallback.ec-has-real-media > .placeholder-label{display:none!important}
+.photo-fallback.ec-has-real-media > .ec-slot-media{position:absolute;inset:0;height:100%;pointer-events:none;z-index:0}
+.photo-fallback.ec-has-real-media > .ec-slot-media img,.photo-fallback.ec-has-real-media > .ec-slot-media video{height:100%;width:100%;object-fit:cover}
+.photo-fallback.ec-has-real-media > .hotspot{position:absolute;z-index:2}
+.model-schematic.ec-has-real-media{font-size:0}
+.model-schematic.ec-has-real-media > .ec-slot-media{font-size:.85rem}
+#plan-visual.ec-has-real-media > .plan-shape{visibility:hidden}
+#plan-visual.ec-has-real-media > .ec-slot-media{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#plan-visual.ec-has-real-media > .ec-slot-media img{height:100%;object-fit:contain}
+.technical-fallback.ec-has-real-media > :not(.ec-slot-media){display:none}
+.ec-b01-group{border-top:1px solid #b8c6bd;padding:1rem 0}
+.ec-b01-group label{display:block}
+.ec-hotspot-media-slot > .ec-slot-media{margin:.75rem 0}
+[hidden]{display:none!important}
