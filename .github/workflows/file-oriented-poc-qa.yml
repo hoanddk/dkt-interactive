@@ -1,0 +1,38 @@
+name: File-Oriented Editorial POC QA
+
+on:
+  push:
+    branches:
+      - experiment/file-oriented-editor-v0.1
+    paths:
+      - 'file-oriented-poc/**'
+      - '.github/workflows/file-oriented-poc-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: file-oriented-poc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-test:
+    name: File-oriented contract selftest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: file-oriented-poc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install POC dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run POC selftest
+        run: npm test
+      - name: Build empty-asset placeholder state
+        run: npm run build

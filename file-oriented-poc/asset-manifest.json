@@ -1,0 +1,60 @@
+{
+  "version": "0.1",
+  "contract": "FILE_ORIENTED_EDITORIAL_POC",
+  "allowed_extensions": [".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg"],
+  "slots": [
+    {
+      "id": "HERO_01",
+      "type": "image",
+      "ratio": "16:9",
+      "layout": "hero",
+      "source_pattern": "ASSETS/HERO_01.*",
+      "min_width": 1600,
+      "max_output_width": 2000,
+      "alt": "Ảnh mở bài Điện Kính Thiên"
+    },
+    {
+      "id": "IMG_01",
+      "type": "image",
+      "ratio": "3:2",
+      "layout": "wide",
+      "source_pattern": "ASSETS/IMG_01.*",
+      "min_width": 1400,
+      "max_output_width": 1800,
+      "alt": "Ảnh minh họa phần những gì còn lại"
+    },
+    {
+      "id": "B01_MAIN",
+      "type": "image",
+      "ratio": "16:9",
+      "layout": "interactive-main",
+      "component": "B01",
+      "source_pattern": "ASSETS/B01_MAIN.*",
+      "min_width": 1600,
+      "max_output_width": 1800,
+      "alt": "Ảnh chính của component B01"
+    },
+    {
+      "id": "B01_H01",
+      "type": "image",
+      "ratio": "16:9",
+      "layout": "interactive-hotspot",
+      "component": "B01",
+      "hotspot": "H01",
+      "source_pattern": "ASSETS/B01_H01.*",
+      "min_width": 1200,
+      "max_output_width": 1400,
+      "alt": "Ảnh hotspot 1 của component B01"
+    },
+    {
+      "id": "IMG_02",
+      "type": "image",
+      "ratio": "4:3",
+      "layout": "inline",
+      "source_pattern": "ASSETS/IMG_02.*",
+      "min_width": 1200,
+      "max_output_width": 1400,
+      "alt": "Ảnh minh họa phần tiếp theo"
+    }
+  ]
+}

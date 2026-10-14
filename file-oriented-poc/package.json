@@ -1,0 +1,16 @@
+{
+  "name": "dkt-file-oriented-editor-poc",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node dev-server.mjs",
+    "test": "node selftest.mjs"
+  },
+  "dependencies": {
+    "chokidar": "4.0.3",
+    "marked": "15.0.12",
+    "sharp": "0.33.5"
+  }
+}
