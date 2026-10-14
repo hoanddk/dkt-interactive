@@ -79,6 +79,7 @@ jobs:
             for (const sub of suite.suites || []) walk(sub);
           }
           for (const suite of result.suites || []) walk(suite);
+          const blocked = fail || skip || flaky;
           const report = [
             '# Interactive Editorial Console v0.1 — Runtime Browser QA',
             '',
@@ -90,7 +91,7 @@ jobs:
             '- FAIL: ' + fail,
             '- SKIPPED: ' + skip,
             '- FLAKY: ' + flaky,
-            '- FINAL ACCEPTANCE STATE: ' + (fail || skip ? 'BROWSER_QA_BLOCKED' : 'READY_FOR_EDITORIAL_USE'),
+            '- FINAL ACCEPTANCE STATE: ' + (blocked ? 'BROWSER_QA_BLOCKED' : 'READY_FOR_EDITORIAL_USE'),
             '',
             'HTML report and trace/screenshots are attached to the workflow run.',
             ''
@@ -117,8 +118,33 @@ jobs:
             qa-summary.md
           if-no-files-found: warn
           retention-days: 14
-      - name: Fail job if browser QA failed
+      - name: Enforce zero fail, skip and flaky
         if: always()
         shell: bash
         run: |
           test "${{ steps.browser_qa.outcome }}" = "success"
+          node - <<'NODE'
+          const fs = require('fs');
+          const file = 'test-results/results.json';
+          if (!fs.existsSync(file)) {
+            console.error('BLOCKER: no Playwright JSON results.');
+            process.exit(1);
+          }
+          const result = JSON.parse(fs.readFileSync(file, 'utf8'));
+          let fail=0,skip=0,flaky=0;
+          function walk(suite) {
+            for (const spec of suite.specs || []) for (const test of spec.tests || []) {
+              const status = test.status || '';
+              if(status === 'flaky') flaky++;
+              else if(status === 'skipped') skip++;
+              else if(status !== 'expected') fail++;
+            }
+            for (const sub of suite.suites || []) walk(sub);
+          }
+          for (const suite of result.suites || []) walk(suite);
+          if (fail || skip || flaky) {
+            console.error(`Acceptance blocked: FAIL=${fail} SKIPPED=${skip} FLAKY=${flaky}`);
+            process.exit(1);
+          }
+          console.log('Acceptance gate: FAIL=0 SKIPPED=0 FLAKY=0');
+          NODE
