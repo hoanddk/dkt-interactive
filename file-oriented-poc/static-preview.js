@@ -12,6 +12,8 @@ const slots = {
   IMG_02: ['4:3', '1200 px']
 };
 
+let lastText = null;
+
 function escapeHtml(text='') {
   return String(text)
     .replaceAll('&', '&amp;')
@@ -89,16 +91,36 @@ function markdownToHtml(markdown) {
   return out.join('\n');
 }
 
+function renderText(text, label = 'CONTENT.md') {
+  target.innerHTML = markdownToHtml(text);
+  status.textContent = 'CONTENT.md ĐÃ NẠP';
+  loadStatus.textContent = `Đã render ${label} · ${new Date().toLocaleTimeString('vi-VN')}`;
+  lastText = text;
+}
+
 async function loadFile(file) {
   if (!file) return;
   try {
-    const text = await file.text();
-    target.innerHTML = markdownToHtml(text);
-    status.textContent = 'CONTENT.md ĐÃ NẠP';
-    loadStatus.textContent = `Đã render ${file.name} · ${new Date().toLocaleTimeString('vi-VN')}`;
+    renderText(await file.text(), file.name);
   } catch (error) {
     status.textContent = 'LỖI ĐỌC FILE';
     loadStatus.textContent = error.message;
+  }
+}
+
+async function loadLocalContent({ silent = false } = {}) {
+  if (location.protocol === 'file:') return false;
+  try {
+    const response = await fetch(`CONTENT.md?t=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    if (text !== lastText) renderText(text, 'CONTENT.md');
+    else if (!silent) loadStatus.textContent = `CONTENT.md chưa thay đổi · ${new Date().toLocaleTimeString('vi-VN')}`;
+    return true;
+  } catch (error) {
+    status.textContent = 'KHÔNG ĐỌC ĐƯỢC CONTENT.md';
+    loadStatus.textContent = `Có thể dùng nút chọn file dự phòng · ${error.message}`;
+    return false;
   }
 }
 
@@ -112,3 +134,13 @@ fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
   dropzone.classList.remove('drag');
 }));
 dropzone.addEventListener('drop', (event) => loadFile(event.dataTransfer.files[0]));
+
+if (location.protocol === 'file:') {
+  status.textContent = 'CHẾ ĐỘ FILE TRỰC TIẾP';
+  loadStatus.textContent = 'Chọn CONTENT.md để render.';
+} else {
+  dropzone.hidden = true;
+  loadStatus.textContent = 'Đang tự nạp CONTENT.md…';
+  await loadLocalContent();
+  setInterval(() => loadLocalContent({ silent: true }), 1500);
+}
