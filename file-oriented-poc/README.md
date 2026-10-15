@@ -6,13 +6,24 @@ Architecture spike độc lập để kiểm chứng workflow:
 
 Không thay đổi production article, không merge `main`, không publish và không thay thế Editorial Console hiện tại.
 
-## Editor workflow
+## Editor workflow — chế độ usability test đơn giản
 
-Trong môi trường thử nghiệm đã được khởi động sẵn, biên tập viên chỉ làm 3 việc:
+Đối với STEP 02 / TEST 01, không cần Node, npm hay local server.
+
+1. Sửa `CONTENT.md` và Save.
+2. Mở `preview-static.html` trực tiếp bằng Safari.
+3. Chọn hoặc kéo `CONTENT.md` vào vùng nạp file.
+4. Prototype render ngay nội dung Markdown mới.
+
+Do giới hạn bảo mật của Safari khi mở file HTML trực tiếp từ Finder, trang không thể tự đọc một file local khác bên cạnh nếu người dùng chưa cấp quyền bằng thao tác chọn/kéo file. Vì vậy TEST 01 dùng file picker thay cho auto-refresh.
+
+## Editor workflow — chế độ technical POC đầy đủ
+
+Khi cần kiểm chứng auto-build, auto-refresh và image processing:
 
 1. Mở `CONTENT.md`, sửa câu chữ và Save.
 2. Muốn thay/bổ sung ảnh: đưa file vào `ASSETS/` và đặt basename đúng slot, ví dụ `HERO_01.jpg`, `B01_MAIN.png`, `B01_H01.webp`.
-3. Xem cửa sổ prototype. Dev watcher tự rebuild và browser tự refresh.
+3. Dev watcher tự rebuild và browser tự refresh.
 
 Biên tập viên không phải sửa HTML, JavaScript hoặc JSON manifest.
 
@@ -26,11 +37,11 @@ Biên tập viên không phải sửa HTML, JavaScript hoặc JSON manifest.
 | `B01_H01` | B01 hotspot 1 image | 16:9 | 1200 px |
 | `IMG_02` | inline image | 4:3 | 1200 px |
 
-Nếu không có file, prototype hiển thị placeholder đúng slot. Nếu có đúng một file basename tương ứng, placeholder bị replace. Nếu có nhiều file cùng basename với extension khác nhau, build báo `DUPLICATE_SOURCE` thay vì tự chọn ngẫu nhiên.
+Nếu không có file, prototype hiển thị placeholder đúng slot. Nếu có đúng một file basename tương ứng, placeholder bị replace trong technical mode. Nếu có nhiều file cùng basename với extension khác nhau, build báo `DUPLICATE_SOURCE` thay vì tự chọn ngẫu nhiên.
 
 ## Image processing
 
-Build engine dùng `sharp` để:
+Technical mode dùng `sharp` để:
 
 - đọc kích thước ảnh;
 - cảnh báo `TOO_SMALL` nếu chiều rộng dưới ngưỡng;
@@ -40,15 +51,15 @@ Build engine dùng `sharp` để:
 - resize xuống max output width theo layout;
 - sinh WebP quality 82 cho prototype.
 
-POC không làm DAM, crop editor hoặc image editor. Ảnh lệch ratio vẫn được render kèm cảnh báo để workflow không bị chặn im lặng.
+Static preview của TEST 01 chỉ kiểm chứng text workflow và placeholder mapping; không thay thế bài test image-processing.
 
 ## B01 proof
 
-`B01_MAIN` được render vào stage chính của component B01. `B01_H01` chỉ được render trong panel hotspot 1 và chỉ hiện khi người đọc mở hotspot. Hai slot không append như hai ảnh độc lập.
+Technical mode: `B01_MAIN` được render vào stage chính của component B01; `B01_H01` chỉ được render trong panel hotspot 1.
 
-## Technical bootstrap
+Static preview: hai slot được hiển thị đúng vai trò dưới dạng placeholder để xác nhận vị trí nội dung trong usability test mà không cần runtime server.
 
-Một lần cho môi trường thử nghiệm:
+## Technical bootstrap — chỉ khi cần
 
 ```bash
 cd file-oriented-poc
@@ -57,8 +68,6 @@ npm run dev
 ```
 
 Mở `http://127.0.0.1:4173`.
-
-Sau khi dev server đang chạy, editor không cần chạy thêm lệnh khi sửa text hoặc thay asset.
 
 Kiểm thử contract:
 
