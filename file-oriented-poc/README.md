@@ -88,6 +88,16 @@ Self-test tạo fixture trong thư mục tạm của hệ điều hành, không 
 
 Phần chữ reader-facing vẫn nằm trong Markdown; marker chỉ là neo bố cục ổn định.
 
+## Locked publish-boundary rule
+
+**EDITORIAL WARNING MUST NEVER LEAK TO PUBLISHED OUTPUT.**
+
+Quy tắc này được khóa cho POC:
+
+- cảnh báo như `TOO_SMALL`, `RATIO_MISMATCH`, thiếu ảnh, trùng slot hoặc lỗi mapping chỉ được hiển thị trong lớp biên tập/preview;
+- đầu ra công khai cho độc giả không được render bất kỳ cảnh báo kỹ thuật hoặc metadata kiểm tra nào;
+- nếu lỗi đạt mức chặn xuất bản, hệ thống phải chặn hoặc yêu cầu xác nhận ngoại lệ ở lớp biên tập thay vì đưa cảnh báo lên bài công khai.
+
 ## Scope limits
 
 POC không có CMS, DAM, backend, cloud storage, Reader AI, chart library, maps, realtime API, theme engine, full migration, merge main hoặc publish.
