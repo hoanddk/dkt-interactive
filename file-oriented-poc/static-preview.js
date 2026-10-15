@@ -135,12 +135,20 @@ fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
 }));
 dropzone.addEventListener('drop', (event) => loadFile(event.dataTransfer.files[0]));
 
-if (location.protocol === 'file:') {
-  status.textContent = 'CHẾ ĐỘ FILE TRỰC TIẾP';
-  loadStatus.textContent = 'Chọn CONTENT.md để render.';
-} else {
+async function bootstrap() {
+  if (location.protocol === 'file:') {
+    status.textContent = 'CHẾ ĐỘ FILE TRỰC TIẾP';
+    loadStatus.textContent = 'Chọn CONTENT.md để render.';
+    return;
+  }
+
   dropzone.hidden = true;
   loadStatus.textContent = 'Đang tự nạp CONTENT.md…';
   await loadLocalContent();
   setInterval(() => loadLocalContent({ silent: true }), 1500);
 }
+
+bootstrap().catch((error) => {
+  status.textContent = 'LỖI KHỞI ĐỘNG PREVIEW';
+  loadStatus.textContent = error.message;
+});
