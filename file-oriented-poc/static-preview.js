@@ -12,6 +12,7 @@ const slots = {
   IMG_02: ['4:3', '1200 px']
 };
 
+const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.svg'];
 let lastText = null;
 
 function escapeHtml(text='') {
@@ -28,9 +29,13 @@ function inlineFormat(text) {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
-function assetPlaceholder(id) {
+function placeholderMarkup(id) {
   const [ratio, min] = slots[id] || ['?', '?'];
-  return `<div class="asset-placeholder" data-slot="${id}"><strong>${id}</strong><span>Ảnh ${ratio}</span><span>Khuyến nghị tối thiểu ${min}</span></div>`;
+  return `<strong>${id}</strong><span>Ảnh ${ratio}</span><span>Khuyến nghị tối thiểu ${min}</span>`;
+}
+
+function assetPlaceholder(id) {
+  return `<div class="asset-placeholder" data-slot="${id}">${placeholderMarkup(id)}</div>`;
 }
 
 function componentB01() {
@@ -96,6 +101,7 @@ function renderText(text, label = 'CONTENT.md') {
   status.textContent = 'CONTENT.md ĐÃ NẠP';
   loadStatus.textContent = `Đã render ${label} · ${new Date().toLocaleTimeString('vi-VN')}`;
   lastText = text;
+  if (location.protocol !== 'file:') scanAssets().catch(() => {});
 }
 
 async function loadFile(file) {
@@ -124,6 +130,119 @@ async function loadLocalContent({ silent = false } = {}) {
   }
 }
 
+function setMissingAsset(element, id) {
+  if (element.dataset.assetState === 'missing') return;
+  element.className = 'asset-placeholder';
+  element.innerHTML = placeholderMarkup(id);
+  element.dataset.assetState = 'missing';
+  delete element.dataset.assetSignature;
+}
+
+function setDuplicateAsset(element, id, matches) {
+  const signature = `duplicate:${matches.join('|')}`;
+  if (element.dataset.assetSignature === signature) return;
+  element.className = 'asset-placeholder';
+  element.innerHTML = `<strong>${id}</strong><span style="color:#8a2d20">Lỗi: có nhiều file cùng slot</span><span>${matches.map(escapeHtml).join(' · ')}</span>`;
+  element.dataset.assetState = 'duplicate';
+  element.dataset.assetSignature = signature;
+}
+
+async function fileSignature(filename) {
+  try {
+    const response = await fetch(`ASSETS/${encodeURIComponent(filename)}?probe=${Date.now()}`, {
+      method: 'HEAD',
+      cache: 'no-store'
+    });
+    if (!response.ok) return `${filename}:unknown`;
+    return [filename, response.headers.get('last-modified') || '', response.headers.get('content-length') || ''].join('|');
+  } catch (_) {
+    return `${filename}:unknown`;
+  }
+}
+
+function setResolvedAsset(element, id, filename, signature) {
+  if (element.dataset.assetSignature === signature && element.dataset.assetState === 'resolved') return;
+
+  const [ratioText, minText] = slots[id] || ['?', '0 px'];
+  const minWidth = parseInt(minText, 10) || 0;
+  const ratioParts = ratioText.split(':').map(Number);
+  const expectedRatio = ratioParts.length === 2 && ratioParts[1] ? ratioParts[0] / ratioParts[1] : null;
+
+  element.className = 'asset-resolved';
+  element.innerHTML = '';
+  element.style.margin = '36px auto';
+  element.style.maxWidth = '980px';
+
+  const image = document.createElement('img');
+  image.alt = id;
+  image.src = `ASSETS/${encodeURIComponent(filename)}?v=${encodeURIComponent(signature)}`;
+  image.style.display = 'block';
+  image.style.width = '100%';
+  image.style.height = 'auto';
+  image.style.borderRadius = '8px';
+
+  const info = document.createElement('div');
+  info.style.marginTop = '8px';
+  info.style.font = '600 12px/1.4 ui-monospace, monospace';
+  info.style.color = '#655f56';
+  info.textContent = `${id} · ${filename}`;
+
+  image.addEventListener('load', () => {
+    const warnings = [];
+    if (minWidth && image.naturalWidth < minWidth) warnings.push(`ảnh nhỏ hơn ${minWidth}px`);
+    if (expectedRatio && image.naturalHeight) {
+      const actualRatio = image.naturalWidth / image.naturalHeight;
+      if (Math.abs(actualRatio / expectedRatio - 1) > 0.08) warnings.push(`tỷ lệ lệch ${ratioText}`);
+    }
+    info.textContent = `${id} · ${filename} · ${image.naturalWidth}×${image.naturalHeight}px`;
+    if (warnings.length) {
+      const warning = document.createElement('div');
+      warning.style.marginTop = '4px';
+      warning.style.color = '#8a2d20';
+      warning.textContent = `Cảnh báo: ${warnings.join('; ')}`;
+      info.appendChild(warning);
+    }
+  });
+
+  element.appendChild(image);
+  element.appendChild(info);
+  element.dataset.assetState = 'resolved';
+  element.dataset.assetSignature = signature;
+}
+
+async function listAssetFiles() {
+  const response = await fetch(`ASSETS/?t=${Date.now()}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`ASSETS HTTP ${response.status}`);
+  const html = await response.text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return Array.from(doc.querySelectorAll('a'))
+    .map((a) => (a.textContent || '').trim())
+    .filter(Boolean);
+}
+
+async function scanAssets() {
+  if (location.protocol === 'file:') return;
+  const files = await listAssetFiles();
+  const elements = Array.from(document.querySelectorAll('[data-slot]'));
+
+  for (const element of elements) {
+    const id = element.dataset.slot;
+    const matches = files.filter((filename) => allowedExtensions.some((ext) => filename === `${id}${ext}`));
+
+    if (matches.length === 0) {
+      setMissingAsset(element, id);
+      continue;
+    }
+    if (matches.length > 1) {
+      setDuplicateAsset(element, id, matches);
+      continue;
+    }
+
+    const signature = await fileSignature(matches[0]);
+    setResolvedAsset(element, id, matches[0], signature);
+  }
+}
+
 fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
 ['dragenter', 'dragover'].forEach((eventName) => dropzone.addEventListener(eventName, (event) => {
   event.preventDefault();
@@ -135,6 +254,11 @@ fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
 }));
 dropzone.addEventListener('drop', (event) => loadFile(event.dataTransfer.files[0]));
 
+async function refreshLocalPreview() {
+  await loadLocalContent({ silent: true });
+  await scanAssets();
+}
+
 async function bootstrap() {
   if (location.protocol === 'file:') {
     status.textContent = 'CHẾ ĐỘ FILE TRỰC TIẾP';
@@ -145,7 +269,8 @@ async function bootstrap() {
   dropzone.hidden = true;
   loadStatus.textContent = 'Đang tự nạp CONTENT.md…';
   await loadLocalContent();
-  setInterval(() => loadLocalContent({ silent: true }), 1500);
+  await scanAssets();
+  setInterval(() => refreshLocalPreview().catch(() => {}), 1500);
 }
 
 bootstrap().catch((error) => {
