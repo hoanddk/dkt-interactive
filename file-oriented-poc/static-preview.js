@@ -13,6 +13,15 @@ const slots = {
 };
 
 const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.svg'];
+const legacyEditorialPrefixes = [
+  'POC này chỉ kiểm chứng cơ chế ánh xạ media của B01.',
+  'Khi một slot chưa có file tương ứng,',
+  'Nội dung POC dừng tại đây.'
+];
+const legacyEditorialHeadings = new Set([
+  '## B01 — Một ảnh chính, một hotspot',
+  '## Phần tiếp theo'
+]);
 let lastText = null;
 
 function escapeHtml(text='') {
@@ -38,12 +47,24 @@ function assetPlaceholder(id) {
   return `<div class="asset-placeholder" data-slot="${id}">${placeholderMarkup(id)}</div>`;
 }
 
+function editorialGuidanceB01() {
+  return `<aside data-editorial-only="true" style="margin:0 0 14px;padding:10px 12px;border:1px dashed #9f9382;border-radius:8px;background:#fffaf0;color:#655f56;font:600 12px/1.45 ui-monospace,monospace">
+    CHỈ DẪN BIÊN TẬP · B01: B01_MAIN = ảnh chính; B01_H01 = ảnh hotspot H01. Khối này chỉ dành cho preview biên tập và không thuộc nội dung độc giả.
+  </aside>`;
+}
+
 function componentB01() {
   return `<section class="component-static" data-component="B01">
-    <strong>B01 — STATIC PLACEHOLDER DEMO</strong>
+    ${editorialGuidanceB01()}
     ${assetPlaceholder('B01_MAIN')}
-    <div class="hotspot-demo"><strong>Hotspot 1 → B01_H01</strong>${assetPlaceholder('B01_H01')}</div>
+    <div class="hotspot-demo"><strong data-editorial-only="true">Hotspot H01</strong>${assetPlaceholder('B01_H01')}</div>
   </section>`;
+}
+
+function isLegacyEditorialLine(line) {
+  const trimmed = line.trim();
+  if (legacyEditorialHeadings.has(trimmed)) return true;
+  return legacyEditorialPrefixes.some((prefix) => trimmed.startsWith(prefix));
 }
 
 function markdownToHtml(markdown) {
@@ -61,6 +82,10 @@ function markdownToHtml(markdown) {
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
     if (!line.trim()) {
+      flush();
+      continue;
+    }
+    if (isLegacyEditorialLine(line)) {
       flush();
       continue;
     }
@@ -182,6 +207,7 @@ function setResolvedAsset(element, id, filename, signature) {
   image.style.borderRadius = '8px';
 
   const info = document.createElement('div');
+  info.dataset.editorialOnly = 'true';
   info.style.marginTop = '8px';
   info.style.font = '600 12px/1.4 ui-monospace, monospace';
   info.style.color = '#655f56';
