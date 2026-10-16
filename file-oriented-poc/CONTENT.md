@@ -1,10 +1,10 @@
-# Từ bậc đá đến mái điện: Chúng ta thực sự biết chắc đến đâu về Điện Kính Thiên?
+# Điện Kính Thiên trước giờ phục dựng: phần nào là chứng cứ, phần nào là giả thuyết?
 
-> Một số dấu tích của Điện Kính Thiên vẫn có thể quan sát tại chỗ; những dấu tích khác được nhận diện qua khảo cổ và đo đạc. Nhưng để hình dung các cấu phần phía trên, giới nghiên cứu phải kết nối nhiều loại chứng cứ và đưa ra những giả thuyết phục dựng.
+> Việc phục dựng Điện Kính Thiên không chỉ là câu chuyện dựng lại một công trình đã mất, mà còn là bài toán xác định ranh giới giữa chứng cứ khảo cổ, tư liệu lịch sử và phần kiến trúc phải suy dựng.
 
 [[ASSET:HERO_01]]
 
-Muốn hiểu một cuộc phục dựng, trước hết phải biết phần nào của công trình vẫn còn ở đó — và phần nào chỉ có thể được suy ra từ những gì còn lại.
+Muốn hiểu việc phục dựng Điện Kính Thiên, cần tách rõ ba lớp: phần còn lại tại di tích, phần có thể xác lập từ chứng cứ và phần vẫn còn là giả thuyết.
 
 ## Những gì còn lại
 
@@ -12,18 +12,10 @@ Những dấu tích đá còn tại chỗ, trong đó có thềm rồng phía Na
 
 [[ASSET:IMG_01]]
 
-Các dấu tích nền, móng được khảo sát và đo đạc thuộc một nhóm bằng chứng khác. Chúng cần được trình bày ở mức bằng chứng tương ứng, không gộp với các cấu phần đá còn tại chỗ.
-
-## B01 — Một ảnh chính, một hotspot
-
-POC này chỉ kiểm chứng cơ chế ánh xạ media của B01. Ảnh chính phải luôn đi vào `B01_MAIN`; khi người đọc mở hotspot số 1, ảnh `B01_H01` phải xuất hiện đúng trong panel của hotspot, không được append thành một ảnh độc lập ngoài component.
-
 [[COMPONENT:B01]]
 
-## Phần tiếp theo
+## Từ dấu tích còn lại đến dữ liệu khảo cổ
 
-Khi một slot chưa có file tương ứng, trang phải giữ nguyên vị trí của media và hiển thị placeholder đủ rõ để biên tập viên biết cần bổ sung asset nào, tỷ lệ nào và độ phân giải tối thiểu bao nhiêu.
+Các dấu tích nền, móng được khảo sát và đo đạc thuộc một nhóm bằng chứng khác. Chúng cần được trình bày ở mức bằng chứng tương ứng, không gộp với các cấu phần đá còn tại chỗ.
 
 [[ASSET:IMG_02]]
-
-Nội dung POC dừng tại đây. Không chuyển toàn bộ bài Điện Kính Thiên sang workflow mới trong architecture spike này.
