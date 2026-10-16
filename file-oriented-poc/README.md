@@ -27,6 +27,17 @@ Khi cần kiểm chứng auto-build, auto-refresh và image processing:
 
 Biên tập viên không phải sửa HTML, JavaScript hoặc JSON manifest.
 
+## Reader-content purity rule
+
+**CONTENT.md MUST CONTAIN READER-FACING CONTENT ONLY.**
+
+Quy tắc này được khóa cho POC:
+
+- `CONTENT.md` chỉ chứa câu chữ dành cho độc giả và các marker bố cục máy đọc tối thiểu;
+- hướng dẫn biên tập, tên slot, mô tả cơ chế POC, cảnh báo kỹ thuật, metadata kiểm tra và chỉ dẫn mapping không được viết như prose của bài;
+- chỉ dẫn kỹ thuật phải nằm ở lớp preview/biên tập riêng và được đánh dấu `data-editorial-only` hoặc tương đương;
+- mọi legacy POC guidance đã lẫn trong fixture phải được coi là dữ liệu cần migration, không phải nội dung xuất bản.
+
 ## 5 media slots duy nhất trong POC
 
 | Slot | Role | Ratio | Min width |
